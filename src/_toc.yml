@@ -1,0 +1,15 @@
+format: jb-book
+root: index
+parts:
+  - caption: Flowsheets
+    chapters:
+      - file: hda/index
+        sections:
+        - file: hda/HDA_flowsheet_doc
+        - file: hda/HDA_flowsheet_with_distillation_doc
+  - caption: Tools
+    chapters:
+      - file: parmest/index
+        sections:
+        - file: parmest/parameter_estimation_NRTL_using_state_block_doc
+        - file: parmest/parameter_estimation_NRTL_using_unit_model_doc
