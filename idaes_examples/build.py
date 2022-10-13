@@ -11,6 +11,7 @@ import sys
 import time
 import traceback
 import webbrowser
+
 # third-party
 import yaml
 
@@ -30,6 +31,7 @@ NB_CELLS = "cells"  # key for list of cells in a Jupyter Notebook
 # -------------
 #  Preprocess
 # -------------
+
 
 class Tags(Enum):
     EX = "exercise"
@@ -116,15 +118,18 @@ def _preprocess(nb_path):
     dur = time.time() - t0
     _log.info(f"Prepocessed notebook {nb_path} in {dur:.2f} seconds")
 
+
 # -------------
 #  Jupyterbook
 # -------------
+
 
 def jupyterbook(srcdir=None):
     src_path = Path(srcdir) / "src"
     if not src_path.is_dir():
         raise FileNotFoundError(f"Could not find directory: {src_path}")
     check_call(["jupyter-book", "build", str(src_path)])
+
 
 # -------------
 #    View
@@ -140,6 +145,7 @@ def view_docs(srcdir=None):
     webbrowser.open_new(url)
     return 0
 
+
 # -------------
 #  Commandline
 # -------------
@@ -152,7 +158,7 @@ class Commands:
         return cls._run("pre-process notebooks", preprocess, srcdir=args.dir)
 
     @classmethod
-    def book(cls, args):
+    def build(cls, args):
         cls.heading("Build Jupyterbook")
         return cls._run("build jupyterbook", jupyterbook, srcdir=args.dir)
 
@@ -209,8 +215,11 @@ def main():
         title="Commands", help="Commands to run", required=True, dest="command"
     )
     subp = {}
-    for name, desc in (("pre", "Pre-process notebooks"), ("book", "Build Jupyterbook"),
-                       ("view", "View Jupyterbook")):
+    for name, desc in (
+        ("pre", "Pre-process notebooks"),
+        ("build", "Build Jupyterbook"),
+        ("view", "View Jupyterbook"),
+    ):
         subp[name] = commands.add_parser(name, help=desc)
         subp[name].add_argument(
             "-d", "--dir", help="Source directory (default=<current>)", default="."
