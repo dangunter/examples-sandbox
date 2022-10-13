@@ -5,11 +5,16 @@ parts:
     chapters:
       - file: hda/index
         sections:
-        - file: hda/HDA_flowsheet_doc
-        - file: hda/HDA_flowsheet_with_distillation_doc
+          - file: hda/HDA_flowsheet_doc
+          - file: hda/HDA_flowsheet_with_distillation_doc
   - caption: Tools
     chapters:
       - file: parmest/index
         sections:
-        - file: parmest/parameter_estimation_NRTL_using_state_block_doc
-        - file: parmest/parameter_estimation_NRTL_using_unit_model_doc
+          - file: parmest/parameter_estimation_NRTL_using_state_block_doc
+          - file: parmest/parameter_estimation_NRTL_using_unit_model_doc
+      - file: dae/index
+        sections:
+          - file: dae/petsc_chem_example_doc
+          - file: dae/petsc_pid_example_doc
+          
