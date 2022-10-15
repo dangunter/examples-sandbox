@@ -10,6 +10,7 @@ from subprocess import check_call
 import sys
 import time
 import traceback
+from typing import Callable, Dict
 import webbrowser
 
 # third-party
@@ -36,32 +37,66 @@ NB_CELLS = "cells"  # key for list of cells in a Jupyter Notebook
 class Tags(Enum):
     EX = "exercise"
     SOL = "solution"
-    TUT = "tutorial"
     TEST = "testing"
 
 
 def preprocess(srcdir=None):
-    # Load table of contents from Jupyterbook
     src_path = Path(srcdir) if srcdir else Path(".")
-    toc_path = src_path / "src" / "_toc.yml"
+    src_path /= "src"
+
+    toc = read_toc(src_path)
+
+    t0 = time.time()
+    n = find_notebooks(src_path, toc, _preprocess)
+    dur = time.time() - t0
+    _log.info(f"Preprocessed {n} notebooks in {dur:.1f} seconds")
+
+
+def read_toc(src_path: Path) -> Dict:
+    """Read and parse Jupyterbook table of contents.
+
+    Args:
+        src_path: Path to source directory containing TOC file
+
+    Returns:
+        Parsed TOC contents
+
+    Raises:
+        FileNotFoundError: If TOC file does not exist
+    """
+    toc_path = src_path / "_toc.yml"
     if not toc_path.exists():
         raise FileNotFoundError(f"Could not find path: {toc_path}")
     with toc_path.open() as toc_file:
         toc = yaml.safe_load(toc_file)
+    return toc
 
-    # Find and preprocess all notebooks in TOC
-    t0, n = time.time(), 0
+
+def find_notebooks(
+    nbpath: Path, toc: Dict, callback: Callable[[Path, ...], None], **kwargs
+) -> int:
+    """Find and preprocess all notebooks in a Jupyterbook TOC.
+
+    Args:
+        nbpath: Path to root of notebook files
+        toc: Table of contents from Jupyterbook
+        callback: Function called for each found notebook, with the path to that
+                  notebook as its first argument.
+        **kwargs: Additional arguments passed through to the callback
+
+    Returns:
+        Number of notebooks processed
+    """
+    n = 0
     for part in toc["parts"]:
         for chapter in part["chapters"]:
             for filemap in chapter["sections"]:
                 filename = filemap["file"][:-4]  # strip "_doc" suffix
-                path = src_path / f"src/{filename}.ipynb"
+                path = nbpath / f"{filename}.ipynb"
                 if path.exists():
-                    _preprocess(path)
+                    callback(path, **kwargs)
                     n += 1
-
-    dur = time.time() - t0
-    _log.info(f"Preprocessed {n} notebooks in {dur:.1f} seconds")
+    return n
 
 
 # Which tags to exclude for which generated file
