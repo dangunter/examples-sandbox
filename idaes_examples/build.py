@@ -16,6 +16,9 @@ import webbrowser
 # third-party
 import yaml
 
+# package
+from idaes_examples.util import add_vb, process_vb
+
 # -------------
 #   Logging
 # -------------
@@ -230,26 +233,6 @@ class Commands:
         print(f"-> {message}")
 
 
-def add_vb(p, dest="vb"):
-    p.add_argument(
-        "-v",
-        "--verbose",
-        action="count",
-        dest=dest,
-        default=0,
-        help="Increase verbosity",
-    )
-
-
-def process_vb(vb):
-    if vb >= 2:
-        _log.setLevel(logging.DEBUG)
-    elif vb == 1:
-        _log.setLevel(logging.INFO)
-    else:
-        _log.setLevel(logging.WARNING)
-
-
 def main():
     p = argparse.ArgumentParser()
     add_vb(p)
@@ -270,9 +253,9 @@ def main():
     args = p.parse_args()
     subvb = getattr(args, f"vb_{args.command}")
     if subvb != args.vb:
-        process_vb(subvb)
+        process_vb(_log, subvb)
     else:
-        process_vb(args.vb)
+        process_vb(_log, args.vb)
     func = getattr(Commands, args.command, None)
     if func is None:
         p.print_help()

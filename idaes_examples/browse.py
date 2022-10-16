@@ -6,8 +6,10 @@ import argparse
 from importlib import resources
 import json
 import logging
+from logging.handlers import RotatingFileHandler
 from operator import attrgetter
 from pathlib import Path
+import sys
 from subprocess import Popen, PIPE
 from typing import Tuple, List
 
@@ -17,7 +19,7 @@ import PySimpleGUI as sg
 # package
 import idaes_examples
 from idaes_examples.build import find_notebooks, read_toc, NB_CELLS, Ext
-from idaes_examples.build import add_vb, process_vb
+from idaes_examples.util import add_vb, process_vb
 
 # -------------
 #   Logging
@@ -25,7 +27,9 @@ from idaes_examples.build import add_vb, process_vb
 
 use_file = False
 log_dir = Path.home() / ".idaes" / "logs"
-if not log_dir.exists():
+if log_dir.exists():
+    use_file = True
+else:
     try:
         log_dir.mkdir(exist_ok=True, parents=True)
         use_file = True
@@ -33,14 +37,18 @@ if not log_dir.exists():
         pass
 _log = logging.getLogger("idaes_examples")
 if use_file:
-    _h = logging.FileHandler(log_dir / "nb_browser.log")
+    _h = RotatingFileHandler(
+        log_dir / "nb_browser.log", maxBytes=64 * 1024, backupCount=5
+    )
 else:
     _h = logging.StreamHandler()
 _h.setFormatter(
-    logging.Formatter("[%(levelname)s] %(asctime)s %(module)s - %(message)s")
+    logging.Formatter("[%(levelname)s] %(asctime)s %(name)s::%(module)s - %(message)s")
 )
 _log.addHandler(_h)
-_log.info("Log created")
+_log.setLevel(logging.INFO)
+
+L_START, L_END = "-start-", "-end-"
 
 # -------------
 
@@ -72,8 +80,9 @@ class Notebooks:
         self._root = get_root()
         self._toc = read_toc(self._root)
         find_notebooks(self._root, self._toc, self._add_notebook)
-        self._sorted_values = sorted(list(self._nb.values()),
-                                     key=attrgetter(*sort_keys))
+        self._sorted_values = sorted(
+            list(self._nb.values()), key=attrgetter(*sort_keys)
+        )
 
     def _add_notebook(self, path: Path):
         name = path.stem
@@ -86,6 +95,9 @@ class Notebooks:
             if tpath.exists():
                 key = (section, name, ext)
                 self._nb[key] = Notebook(name, section, tpath, nbtype=ext)
+
+    def __len__(self):
+        return len(self._nb)
 
     @property
     def notebooks(self):
@@ -204,17 +216,12 @@ def gui(notebooks):
         expand_x=True,
         enable_click_events=True,
         bind_return_key=True,
-        font=FONT
+        font=FONT,
     )
 
     layout = [
         [
-            sg.Frame(
-                "Notebooks",
-                [[table_widget]],
-                expand_y=True,
-                expand_x=True
-            ),
+            sg.Frame("Notebooks", [[table_widget]], expand_y=True, expand_x=True),
             sg.Frame(
                 "Description",
                 [[description_widget]],
@@ -224,7 +231,9 @@ def gui(notebooks):
         ]
     ]
     # create main window
-    window = sg.Window("IDAES Notebook Browser", layout, size=(1200, 600), finalize=True)
+    window = sg.Window(
+        "IDAES Notebook Browser", layout, size=(1200, 600), finalize=True
+    )
 
     nbdesc = NotebookDescription(notebooks, description_widget)
 
@@ -244,6 +253,7 @@ def gui(notebooks):
                 if event[1] == "+CLICKED+":
                     row, _ = event[2]
                     if row is not None:
+                        _log.debug(f"Show description for notebook")
                         nbdesc.clicked(row)
                 elif event[1] == "+CLICKED2+" and row >= 0:
                     nb = notebooks.get(row)
@@ -252,8 +262,9 @@ def gui(notebooks):
                 else:
                     pass
 
+    _log.info("Close main window")
     window.close()
-
+    return 0
 
 class Jupyter:
     command = ["jupyter", "notebook"]
@@ -263,8 +274,9 @@ class Jupyter:
 
     def open(self, nb_path: Path):
         _log.debug(f"(start) open notebook at path={nb_path}")
-        self._proc = Popen(self.command + [str(nb_path)], stdin=None, stdout=PIPE,
-                           stderr=PIPE)
+        self._proc = Popen(
+            self.command + [str(nb_path)], stdin=None, stdout=PIPE, stderr=PIPE
+        )
         # self._read_output()
         _log.debug(f"(end) open notebook at path={nb_path}")
 
@@ -312,34 +324,40 @@ class NotebookDescription:
                 line = line[depth:].strip() + "\n"
                 font_color = "#333"
             # Display line
-            self._w.update(line, append=True, font_for_value=(FONT[0], font_size,
-                                                              font_weight),
-                           text_color_for_value=font_color)
+            self._w.update(
+                line,
+                append=True,
+                font_for_value=(FONT[0], font_size, font_weight),
+                text_color_for_value=font_color,
+            )
+
 
 # -------------
 #   main
 # -------------
 
 
-def main():
-
+def main() -> int:
     p = argparse.ArgumentParser()
     p.add_argument("--console", action="store_true", dest="console")
     add_vb(p)
     args = p.parse_args()
-    process_vb(args.vb)
+    process_vb(_log, args.vb)
 
+    _log.info(f"Find notebooks {L_START}")
     nb = Notebooks()
-
+    _log.info(f"Find notebooks {L_END}: num={len(nb)}")
     if args.console:
         for val in nb._sorted_values:
             pth = Path(val.path).relative_to(Path.cwd())
-            print(
-                f"{val.type}{' '*(10 - len(val.type))} {val.title} -> {pth}"
-            )
+            print(f"{val.type}{' '*(10 - len(val.type))} {val.title} -> {pth}")
+        status = 0
     else:
-        gui(nb)
+        _log.info(f"Run GUI {L_START}")
+        status = gui(nb)
+        _log.info(f"Run GUI {L_END}")
+    return status
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
