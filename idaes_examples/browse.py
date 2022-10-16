@@ -2,9 +2,11 @@
 Graphical examples browser
 """
 # stdlib
+import argparse
 from importlib import resources
 import json
 import logging
+from operator import attrgetter
 from pathlib import Path
 from subprocess import Popen, PIPE
 from typing import Tuple, List
@@ -14,19 +16,31 @@ import PySimpleGUI as sg
 
 # package
 import idaes_examples
-from idaes_examples.build import find_notebooks, read_toc, NB_CELLS, Tags
+from idaes_examples.build import find_notebooks, read_toc, NB_CELLS, Ext
+from idaes_examples.build import add_vb, process_vb
 
 # -------------
 #   Logging
 # -------------
 
-_log = logging.getLogger("build")
-_h = logging.StreamHandler()
+use_file = False
+log_dir = Path.home() / ".idaes" / "logs"
+if not log_dir.exists():
+    try:
+        log_dir.mkdir(exist_ok=True, parents=True)
+        use_file = True
+    except OSError:
+        pass
+_log = logging.getLogger("idaes_examples")
+if use_file:
+    _h = logging.FileHandler(log_dir / "nb_browser.log")
+else:
+    _h = logging.StreamHandler()
 _h.setFormatter(
     logging.Formatter("[%(levelname)s] %(asctime)s %(module)s - %(message)s")
 )
 _log.addHandler(_h)
-
+_log.info("Log created")
 
 # -------------
 
@@ -51,37 +65,41 @@ def get_root() -> Path:
 
 
 class Notebooks:
-    def __init__(self):
+    DEFAULT_SORT_KEYS = ("section", "name", "type")
+
+    def __init__(self, sort_keys=DEFAULT_SORT_KEYS):
         self._nb = {}
         self._root = get_root()
         self._toc = read_toc(self._root)
-        find_notebooks(self._root, self._toc, self.add_notebook)
+        find_notebooks(self._root, self._toc, self._add_notebook)
+        self._sorted_values = sorted(list(self._nb.values()),
+                                     key=attrgetter(*sort_keys))
 
-    def add_notebook(self, path: Path):
+    def _add_notebook(self, path: Path):
         name = path.stem
         section = path.relative_to(self._root).parts[:-1]
-        key = (section, name, "plain")
-        self._nb[key] = Notebook(name, section, path, nbtype="plain")
+        # key = (section, name, "plain")
+        # self._nb[key] = Notebook(name, section, path, nbtype="plain")
 
-        for tag in Tags.EX, Tags.SOL:
-            tpath = path.parent / f"{name}_{tag.value}.ipynb"
+        for ext in Ext.DOC.value, Ext.EX.value, Ext.SOL.value:
+            tpath = path.parent / f"{name}_{ext}.ipynb"
             if tpath.exists():
-                key = (section, name, tag.value)
-                self._nb[key] = Notebook(name, section, tpath, nbtype=tag.value)
+                key = (section, name, ext)
+                self._nb[key] = Notebook(name, section, tpath, nbtype=ext)
 
     @property
     def notebooks(self):
         return self._nb
 
     def get(self, index, name=None):
-        rows = list(self._nb.values())
+        rows = self._sorted_values
         if name is None:
             return rows[index]
         return getattr(rows[index], name)
 
     def as_table(self, *columns: str) -> List[List[str]]:
         t = []
-        for nb in self._nb.values():
+        for nb in self._sorted_values:
             row = []
             for c in columns:
                 v = getattr(nb, c)
@@ -91,7 +109,7 @@ class Notebooks:
 
     def row_groups(self, *columns: str) -> List[int]:
         row_groups, group_num, prev_key = [], -1, None
-        for nb in self._nb.values():
+        for nb in self._sorted_values:
             key = {getattr(nb, c) for c in columns}
             if key != prev_key:
                 group_num += 1
@@ -154,6 +172,8 @@ class Notebook:
 #     GUI
 # -------------
 
+FONT = ("Helvetica", 11)
+
 
 def gui(notebooks):
     sg.theme("Material1")
@@ -184,6 +204,7 @@ def gui(notebooks):
         expand_x=True,
         enable_click_events=True,
         bind_return_key=True,
+        font=FONT
     )
 
     layout = [
@@ -238,12 +259,19 @@ class Jupyter:
     command = ["jupyter", "notebook"]
 
     def __init__(self):
-        pass
+        self._proc = None
 
     def open(self, nb_path: Path):
         _log.debug(f"(start) open notebook at path={nb_path}")
-        Popen(self.command + [str(nb_path)], stdin=None, stdout=PIPE, stderr=PIPE)
+        self._proc = Popen(self.command + [str(nb_path)], stdin=None, stdout=PIPE,
+                           stderr=PIPE)
+        # self._read_output()
         _log.debug(f"(end) open notebook at path={nb_path}")
+
+    def _read_output(self):
+        out_data, err_data = self._proc.communicate()
+        print(f"@@ STDOUT: {out_data}")
+        print(f"@@ STDERR: {out_data}")
 
 
 class NotebookDescription:
@@ -262,6 +290,7 @@ class NotebookDescription:
         pre = True
         for line in self._text:
             # Check that line is non-empty and not a leading blank
+            # Check that line is non-empty and not a leading blank
             if not line:
                 continue
             lstr = line.strip()
@@ -272,7 +301,7 @@ class NotebookDescription:
                 continue
             # Line will be displayed
             pre = False
-            font_size, font_weight, font_color = 11, "", "black"
+            font_size, font_weight, font_color = FONT[1], "", "#444"
             # Change style for headings
             if lstr.startswith("#"):
                 depth = 1
@@ -281,9 +310,9 @@ class NotebookDescription:
                 font_size += (4 - min(depth, 3)) * 2
                 font_weight = "bold"
                 line = line[depth:].strip() + "\n"
-                font_color = "#33a"
+                font_color = "#333"
             # Display line
-            self._w.update(line, append=True, font_for_value=("Arial", font_size,
+            self._w.update(line, append=True, font_for_value=(FONT[0], font_size,
                                                               font_weight),
                            text_color_for_value=font_color)
 
@@ -292,14 +321,25 @@ class NotebookDescription:
 # -------------
 
 
-if __name__ == "__main__":
-    import sys
+def main():
+
+    p = argparse.ArgumentParser()
+    p.add_argument("--console", action="store_true", dest="console")
+    add_vb(p)
+    args = p.parse_args()
+    process_vb(args.vb)
 
     nb = Notebooks()
-    if "gui" in sys.argv or "ui" in sys.argv:
-        gui(nb)
-    else:
-        for key, val in nb._nb.items():
+
+    if args.console:
+        for val in nb._sorted_values:
+            pth = Path(val.path).relative_to(Path.cwd())
             print(
-                f"{val.type}{' '*(10 - len(val.type))} {'/'.join(key[0])}/{key[1]} {val.title}"
+                f"{val.type}{' '*(10 - len(val.type))} {val.title} -> {pth}"
             )
+    else:
+        gui(nb)
+
+
+if __name__ == "__main__":
+    main()

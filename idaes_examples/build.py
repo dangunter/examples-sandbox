@@ -20,7 +20,7 @@ import yaml
 #   Logging
 # -------------
 
-_log = logging.getLogger("build")
+_log = logging.getLogger(__name__)
 _h = logging.StreamHandler()
 _h.setFormatter(
     logging.Formatter("[%(levelname)s] %(asctime)s %(module)s - %(message)s")
@@ -38,6 +38,13 @@ class Tags(Enum):
     EX = "exercise"
     SOL = "solution"
     TEST = "testing"
+
+
+class Ext(Enum):
+    DOC = "doc"
+    EX = "exercise"
+    SOL = "solution"
+    TEST = "test"
 
 
 def preprocess(srcdir=None):
@@ -101,10 +108,10 @@ def find_notebooks(
 
 # Which tags to exclude for which generated file
 exclude_tags = {
-    "test": {Tags.EX.value},
-    "exercise": {Tags.TEST.value, Tags.SOL.value},
-    "solution": {Tags.TEST.value},
-    "doc": {Tags.EX.value, Tags.TEST.value},
+    Ext.TEST.value: {Tags.EX.value},
+    Ext.EX.value: {Tags.TEST.value, Tags.SOL.value},
+    Ext.SOL.value: {Tags.TEST.value},
+    Ext.DOC.value: {Tags.EX.value, Tags.TEST.value},
 }
 
 
@@ -134,10 +141,10 @@ def _preprocess(nb_path):
                 )  # reverse order, so delete works
 
     # Wite output files
-    nb_names = ["test", "doc"]
+    nb_names = [Ext.TEST.value, Ext.DOC.value]
     is_tutorial = had_tag & {Tags.EX, Tags.SOL}
     if is_tutorial:
-        nb_names.extend(["exercise", "solution"])
+        nb_names.extend([Ext.EX.value, Ext.SOL.value])
     for name in nb_names:
         # Generate notebook copy
         nb_copy = nb.copy()
