@@ -9,8 +9,10 @@ import logging
 from logging.handlers import RotatingFileHandler
 from operator import attrgetter
 from pathlib import Path
+import re
 import sys
-from subprocess import Popen, PIPE
+from subprocess import Popen, PIPE, TimeoutExpired
+import time
 from typing import Tuple, List
 
 # third-party
@@ -262,28 +264,49 @@ def gui(notebooks):
                 else:
                     pass
 
+    _log.info("Stop running notebooks")
+    jupyter.stop()
     _log.info("Close main window")
     window.close()
     return 0
 
+
 class Jupyter:
-    command = ["jupyter", "notebook"]
+
+    COMMAND = "jupyter"
 
     def __init__(self):
-        self._proc = None
+        self._ports = set()
 
     def open(self, nb_path: Path):
-        _log.debug(f"(start) open notebook at path={nb_path}")
-        self._proc = Popen(
-            self.command + [str(nb_path)], stdin=None, stdout=PIPE, stderr=PIPE
-        )
-        # self._read_output()
-        _log.debug(f"(end) open notebook at path={nb_path}")
+        _log.info(f"(start) open notebook at path={nb_path}")
+        p = Popen([self.COMMAND, "notebook", str(nb_path)], stderr=PIPE)
+        buf, m = "", None
+        while True:
+            s = p.stderr.read(100).decode("utf-8")
+            if not s:
+                break
+            buf += s
+            m = re.search(r"http://.*:(\d{4})/\?token", buf, flags=re.M)
+            if m:
+                break
+        if m:
+            self._ports.add(m.group(1))
+        _log.info(f"(end) open notebook at path={nb_path}")
 
-    def _read_output(self):
-        out_data, err_data = self._proc.communicate()
-        print(f"@@ STDOUT: {out_data}")
-        print(f"@@ STDERR: {out_data}")
+    def stop(self):
+        for port in self._ports:
+            self._stop(port)
+
+    @classmethod
+    def _stop(cls, port):
+        _log.info(f"(start) stop running notebook, port={port}")
+        p = Popen([cls.COMMAND, "notebook", "stop", port])
+        try:
+            p.wait(timeout=5)
+            _log.info(f"(end) stop running notebook, port={port}: Success")
+        except TimeoutExpired:
+            _log.info(f"(end) stop running notebook, port={port}: Timeout")
 
 
 class NotebookDescription:
@@ -301,7 +324,6 @@ class NotebookDescription:
         self._w.update("")
         pre = True
         for line in self._text:
-            # Check that line is non-empty and not a leading blank
             # Check that line is non-empty and not a leading blank
             if not line:
                 continue
