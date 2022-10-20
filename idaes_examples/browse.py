@@ -281,7 +281,7 @@ class Jupyter:
     def open(self, nb_path: Path):
         _log.info(f"(start) open notebook at path={nb_path}")
         p = Popen([self.COMMAND, "notebook", str(nb_path)], stderr=PIPE)
-        buf, m = "", None
+        buf, m, port = "", None, "unknown"
         while True:
             s = p.stderr.read(100).decode("utf-8")
             if not s:
@@ -291,8 +291,9 @@ class Jupyter:
             if m:
                 break
         if m:
-            self._ports.add(m.group(1))
-        _log.info(f"(end) open notebook at path={nb_path}")
+            port = m.group(1)
+            self._ports.add(port)
+        _log.info(f"(end) open notebook at path={nb_path} port={port}")
 
     def stop(self):
         for port in self._ports:
