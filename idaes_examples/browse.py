@@ -85,17 +85,17 @@ class Notebooks:
         self._sorted_values = sorted(
             list(self._nb.values()), key=attrgetter(*sort_keys)
         )
+        self._tree = self._as_tree()
 
     def _add_notebook(self, path: Path):
         name = path.stem
         section = path.relative_to(self._root).parts[:-1]
-        # key = (section, name, "plain")
-        # self._nb[key] = Notebook(name, section, path, nbtype="plain")
 
         for ext in Ext.DOC.value, Ext.EX.value, Ext.SOL.value:
             tpath = path.parent / f"{name}_{ext}.ipynb"
             if tpath.exists():
                 key = (section, name, ext)
+                _log.debug(f"Add notebook. key='{key}'")
                 self._nb[key] = Notebook(name, section, tpath, nbtype=ext)
 
     def __len__(self):
@@ -105,31 +105,48 @@ class Notebooks:
     def notebooks(self):
         return self._nb
 
-    def get(self, index, name=None):
-        rows = self._sorted_values
-        if name is None:
-            return rows[index]
-        return getattr(rows[index], name)
+    def titles(self):
+        return [nb.title for nb in self._nb.values()]
 
-    def as_table(self, *columns: str) -> List[List[str]]:
-        t = []
-        for nb in self._sorted_values:
-            row = []
-            for c in columns:
-                v = getattr(nb, c)
-                row.append(v)
-            t.append(row)
-        return t
+    def __getitem__(self, key):
+        return self._nb[key]
 
-    def row_groups(self, *columns: str) -> List[int]:
-        row_groups, group_num, prev_key = [], -1, None
+    def as_tree(self) -> sg.TreeData:
+        return self._tree
+
+    def _as_tree(self) -> sg.TreeData:
+        td = sg.TreeData()
+        root_key = "root"
+
+        # organize notebooks hierarchically
+        data = {}
         for nb in self._sorted_values:
-            key = {getattr(nb, c) for c in columns}
-            if key != prev_key:
-                group_num += 1
-                prev_key = key
-            row_groups.append(group_num)
-        return row_groups
+            if nb.section not in data:
+                data[nb.section] = {}
+            if nb.name not in data[nb.section]:
+                data[nb.section][nb.name] = []
+            data[nb.section][nb.name].append(nb)
+
+        # copy hierarchy into an sg.TreeData object
+        td.insert("", text="Notebooks", key=root_key, values=[])
+        for section in data:
+            section_key = f"s_{section}"
+            td.insert(root_key, key=section_key, text=section, values=[])
+            for name, nblist in data[section].items():
+                base_key = None
+                for nb in nblist:
+                    if nb.type == Ext.DOC.value:
+                        base_key = f"nb+{section}+{nb.name}+{nb.type}"
+                        td.insert(section_key, key=base_key, text=nb.title, values=[nb.path])
+                        break
+                if len(nblist) > 1:
+                    for nb in nblist:
+                        if nb.type != Ext.DOC.value:
+                            sub_key = f"nb+{section}+{nb.name}+{nb.type}"
+                            subtitle = nb.type.title()
+                            td.insert(base_key, key=sub_key, text=subtitle, values=[nb.path])
+
+        return td
 
 
 class Notebook:
@@ -192,12 +209,7 @@ FONT = ("Helvetica", 11)
 def gui(notebooks):
     sg.theme("Material1")
 
-    nb_table = notebooks.as_table("type", "section", "title")
-    row_bg_colors = ("white", "lightgrey")
-    nb_table_row_colors = [
-        (i, row_bg_colors[g % 2])
-        for i, g in enumerate(notebooks.row_groups("section", "name"))
-    ]
+    nb_tree = notebooks.as_tree()
 
     description_widget = sg.Multiline(
         expand_y=True,
@@ -206,31 +218,42 @@ def gui(notebooks):
         background_color="white",
     )
 
-    title_max = max([len(r[2]) for r in nb_table])
-    table_widget = sg.Table(
-        nb_table,
-        headings=["Type", "Section", "Title"],
-        auto_size_columns=False,
-        col_widths=[8, 8, title_max],
-        justification="lll",
-        row_colors=nb_table_row_colors,
+    title_max = max(len(t) for t in notebooks.titles())
+
+    nb_widget = sg.Tree(
+        nb_tree,
+        headings=[],
+        col0_width=title_max,
+        select_mode=sg.TABLE_SELECT_MODE_EXTENDED,
+        key="-TREE-",
+        show_expanded=True,
         expand_y=True,
         expand_x=True,
-        enable_click_events=True,
-        bind_return_key=True,
+        enable_events=True,
         font=FONT,
     )
 
+    open_widget = sg.Button(
+        "Open",
+        tooltip="Open the selected notebook",
+        button_color=("white", "#03f"),
+        disabled_button_color=("grey", "grey"),
+        key="open",
+        disabled=True,
+        pad=(10, 10),
+        auto_size_button=False
+    )
     layout = [
         [
-            sg.Frame("Notebooks", [[table_widget]], expand_y=True, expand_x=True),
+            sg.Frame("Notebooks", [[nb_widget]], expand_y=True, expand_x=True),
             sg.Frame(
                 "Description",
                 [[description_widget]],
                 expand_y=True,
                 expand_x=True,
             ),
-        ]
+        ],
+        [open_widget],
     ]
     # create main window
     window = sg.Window(
@@ -238,9 +261,6 @@ def gui(notebooks):
     )
 
     nbdesc = NotebookDescription(notebooks, description_widget)
-
-    table_widget.bind("<Double-Button-1>", "+CLICKED2+")
-    table_widget.bind("<Return>", "+CLICKED2+")
 
     # Event Loop to process "events" and get the "values" of the inputs
     row = -1
@@ -250,19 +270,23 @@ def gui(notebooks):
         # if user closes window or clicks cancel
         if event == sg.WIN_CLOSED or event == "Cancel":
             break
-        if len(event) >= 2:
-            if event[0] == 0:
-                if event[1] == "+CLICKED+":
-                    row, _ = event[2]
-                    if row is not None:
-                        _log.debug(f"Show description for notebook")
-                        nbdesc.clicked(row)
-                elif event[1] == "+CLICKED2+" and row >= 0:
-                    nb = notebooks.get(row)
-                    _log.info(f"Open notebook '{nb.name}'")
-                    jupyter.open(nb.path)
-                else:
-                    pass
+        # print(event, values)
+        if isinstance(event, int):
+            _log.debug("Unhandled event")
+        elif event == "-TREE-":
+            what = values.get("-TREE-", [""])[0]
+            if what == "root" or what.startswith("s_"):
+                window["open"].update(disabled=True)
+            elif what:
+                _, section, name, type_ = what.split("+")
+                nbdesc.show(section, name, type_)
+                window["open"].update(disabled=False)
+        elif event == "open":
+            what = values.get("-TREE-", [None])[0]
+            if what:
+                _, section, name, type_ = what.split("+")
+                path = nbdesc.get_path(section, name, type_)
+                jupyter.open(path)
 
     _log.info("Stop running notebooks")
     jupyter.stop()
@@ -311,15 +335,20 @@ class Jupyter:
 
 
 class NotebookDescription:
-    def __init__(self, nb, widget):
+    def __init__(self, nb: dict, widget):
         self._text = ["Select a notebook to view its description"]
         self._nb = nb
         self._w = widget
         self._print()
 
-    def clicked(self, row):
-        self._text = self._nb.get(row).description_lines
+    def show(self, section, name, type_):
+        key = ((section,), name, type_)
+        self._text = self._nb[key].description_lines
         self._print()
+
+    def get_path(self, section, name, type_) -> Path:
+        key = ((section,), name, type_)
+        return self._nb[key].path
 
     def _print(self):
         self._w.update("")
