@@ -13,7 +13,7 @@ import re
 import sys
 from subprocess import Popen, PIPE, TimeoutExpired
 import tempfile
-from typing import Tuple, List
+from typing import Tuple, List, Dict
 
 # third-party
 import markdown
@@ -57,31 +57,34 @@ L_START, L_END = "-start-", "-end-"
 # -------------
 
 
-def get_root() -> Path:
+def find_notebook_dir() -> Path:
     """Find notebook source root."""
-    path = None
+    root_path = None
     stack = [resources.files(idaes_examples)]
     while stack:
         d = stack.pop()
-        _log.debug(f"resource: {d}")
         if d.is_file():
             pass
         else:
             p = Path(d)
             if p.stem == "nb":
-                path = p
+                root_path = p
                 break
             for item in d.iterdir():
                 stack.append(item)
-    return path
+    return root_path
 
 
 class Notebooks:
+    """Container for all known Jupyter notebooks.
+    """
     DEFAULT_SORT_KEYS = ("section", "name", "type")
 
     def __init__(self, sort_keys=DEFAULT_SORT_KEYS):
         self._nb = {}
-        self._root = get_root()
+        self._root = find_notebook_dir()
+        self._root_key = "root"
+        self._section_key_prefix = "s_"
         self._toc = read_toc(self._root)
         find_notebooks(self._root, self._toc, self._add_notebook)
         self._sorted_values = sorted(
@@ -89,10 +92,9 @@ class Notebooks:
         )
         self._tree = self._as_tree()
 
-    def _add_notebook(self, path: Path):
+    def _add_notebook(self, path: Path, **kwargs):
         name = path.stem
         section = path.relative_to(self._root).parts[:-1]
-
         for ext in Ext.DOC.value, Ext.EX.value, Ext.SOL.value:
             tpath = path.parent / f"{name}_{ext}.ipynb"
             if tpath.exists():
@@ -104,21 +106,28 @@ class Notebooks:
         return len(self._nb)
 
     @property
-    def notebooks(self):
+    def notebooks(self) -> Dict:
+        """Underlying dict mapping a tuple of (section, name, type) to
+        a Notebook object.
+        """
         return self._nb
 
-    def titles(self):
+    def titles(self) -> List[str]:
+        """Get list of all titles for notebooks.
+        """
         return [nb.title for nb in self._nb.values()]
 
     def __getitem__(self, key):
         return self._nb[key]
 
     def as_tree(self) -> sg.TreeData:
+        """Get notebooks as a tree suitable for displaying in a PySimpleGUI
+        Tree widget.
+        """
         return self._tree
 
     def _as_tree(self) -> sg.TreeData:
         td = sg.TreeData()
-        root_key = "root"
 
         # organize notebooks hierarchically
         data = {}
@@ -130,12 +139,13 @@ class Notebooks:
             data[nb.section][nb.name].append(nb)
 
         # copy hierarchy into an sg.TreeData object
-        td.insert("", text="Notebooks", key=root_key, values=[])
+        td.insert("", text="Notebooks", key=self._root_key, values=[])
         for section in data:
-            section_key = f"s_{section}"
-            td.insert(root_key, key=section_key, text=section, values=[])
+            section_key = f"{self._section_key_prefix}_{section}"
+            td.insert(self._root_key, key=section_key, text=section, values=[])
             for name, nblist in data[section].items():
                 base_key = None
+                # Make an entry for the base ('doc') notebook
                 for nb in nblist:
                     if nb.type == Ext.DOC.value:
                         base_key = f"nb+{section}+{nb.name}+{nb.type}"
@@ -143,10 +153,13 @@ class Notebooks:
                             section_key, key=base_key, text=nb.title, values=[nb.path]
                         )
                         break
+                # Make sub-entries for examples, tutorials, etc. (if there are any)
                 if len(nblist) > 1:
                     for nb in nblist:
                         if nb.type != Ext.DOC.value:
                             sub_key = f"nb+{section}+{nb.name}+{nb.type}"
+                            # The name of the sub-entry is its type, since it will be
+                            # visually listed under the title of the base entry.
                             subtitle = nb.type.title()
                             td.insert(
                                 base_key, key=sub_key, text=subtitle, values=[nb.path]
@@ -154,8 +167,16 @@ class Notebooks:
 
         return td
 
+    def is_tree_section(self, key) -> bool:
+        return key.startswith(self._section_key_prefix)
+
+    def is_tree_root(self, key) -> bool:
+        return key == self._root_key
+
 
 class Notebook:
+    """Interface for metadata of one Jupyter notebook.
+    """
     def __init__(self, name: str, section: Tuple, path: Path, nbtype="plain"):
         self.name, self._section = name, section
         self._path = path
@@ -207,6 +228,123 @@ class Notebook:
         if not desc:
             self._short_desc, self._long_desc = "No description", "No description"
             self._lines = [self._short_desc]
+
+
+class Jupyter:
+    """Run Jupyter notebooks.
+    """
+    COMMAND = "jupyter"
+
+    def __init__(self):
+        self._ports = set()
+
+    def open(self, nb_path: Path):
+        """Open notebook in a browser.
+
+        Args:
+            nb_path: Path to notebook (.ipynb) file.
+
+        Returns:
+            None
+        """
+        _log.info(f"(start) open notebook at path={nb_path}")
+        p = Popen([self.COMMAND, "notebook", str(nb_path)], stderr=PIPE)
+        buf, m, port = "", None, "unknown"
+        while True:
+            s = p.stderr.read(100).decode("utf-8")
+            if not s:
+                break
+            buf += s
+            m = re.search(r"http://.*:(\d{4})/\?token", buf, flags=re.M)
+            if m:
+                break
+        if m:
+            port = m.group(1)
+            self._ports.add(port)
+        _log.info(f"(end) open notebook at path={nb_path} port={port}")
+
+    def stop(self):
+        """Stop all running notebooks.
+
+        Returns:
+            None
+        """
+        for port in self._ports:
+            self._stop(port)
+
+    @classmethod
+    def _stop(cls, port):
+        _log.info(f"(start) stop running notebook, port={port}")
+        p = Popen([cls.COMMAND, "notebook", "stop", port])
+        try:
+            p.wait(timeout=5)
+            _log.info(f"(end) stop running notebook, port={port}: Success")
+        except TimeoutExpired:
+            _log.info(f"(end) stop running notebook, port={port}: Timeout")
+
+
+class NotebookDescription:
+    """Show notebook descriptions in a UI widget.
+    """
+    def __init__(self, nb: dict, widget):
+        self._text = "_Select a notebook to view its description_"
+        self._nb = nb
+        self._w = widget
+        self._html_parser = html_parser.HTMLTextParser()
+        self._html()
+
+    def show(self, section: str, name: str, type_: Ext):
+        """Show the description in the widget.
+
+        Args:
+            section: Section for notebook being described
+            name: Name (filename) of notebook
+            type_: Type (doc, example, etc.) of notebook
+
+        Returns:
+            None
+        """
+        key = ((section,), name, type_)
+        self._text = self._nb[key].description
+        # self._print()
+        self._html()
+
+    def _html(self):
+        """Convert markdown source to HTML using the 'markdown' package.
+        """
+        m_html = markdown.markdown(
+            self._text, extensions=["extra", "codehilite"], output_format="html"
+        )
+        self._set_html(self._pre_html(m_html))
+
+    @staticmethod
+    def _pre_html(text):
+        """Pre-process the HTML so it displays more nicely in the relatively crude
+        Tk HTML viewer.
+        """
+        text = re.sub(r"<code>(.*?)</code>", r"<em>\1</em>", text)
+        text = re.sub(
+            r"<sub>(.*?)</sub>", r"<span style='font-size: 50%'>\1</span>", text
+        )
+        text = re.sub(r"<h1>(.*?)</h1>", r"<h1 style='font-size: 120%'>\1</h1>", text)
+        text = re.sub(r"<h2>(.*?)</h2>", r"<h2 style='font-size: 110%'>\1</h2>", text)
+        text = re.sub(r"<h3>(.*?)</h3>", r"<h3 style='font-size: 100%'>\1</h3>", text)
+        return f"<div style='font-size: 80%; " \
+               f"font-family: \"Helvetica Neue\", Helvetica, Arial, sans-serif;'>" \
+               f"{text}</div>"
+
+    def _set_html(self, html, strip=True):
+        w = self._w
+        prev_state = w.cget("state")
+        w.config(state=sg.tk.NORMAL)
+        w.delete("1.0", sg.tk.END)
+        w.tag_delete(w.tag_names)
+        self._html_parser.w_set_html(w, html, strip=strip)
+        w.config(state=prev_state)
+
+    def get_path(self, section, name, type_) -> Path:
+        key = ((section,), name, type_)
+        return self._nb[key].path
 
 
 # -------------
@@ -284,11 +422,13 @@ def gui(notebooks):
             _log.debug("Unhandled event")
         elif event == "-TREE-":
             what = values.get("-TREE-", [""])[0]
-            if what == "root" or what.startswith("s_"):
+            if notebooks.is_tree_section(what) or notebooks.is_tree_root(what):
+                # cannot open a section or the root entry, so disable the button
                 window["open"].update(disabled=True)
             elif what:
                 _, section, name, type_ = what.split("+")
                 nbdesc.show(section, name, type_)
+                # make sure open is enabled
                 window["open"].update(disabled=False)
         elif event == "open":
             what = values.get("-TREE-", [None])[0]
@@ -302,126 +442,6 @@ def gui(notebooks):
     _log.info("Close main window")
     window.close()
     return 0
-
-
-class Jupyter:
-
-    COMMAND = "jupyter"
-
-    def __init__(self):
-        self._ports = set()
-
-    def open(self, nb_path: Path):
-        _log.info(f"(start) open notebook at path={nb_path}")
-        p = Popen([self.COMMAND, "notebook", str(nb_path)], stderr=PIPE)
-        buf, m, port = "", None, "unknown"
-        while True:
-            s = p.stderr.read(100).decode("utf-8")
-            if not s:
-                break
-            buf += s
-            m = re.search(r"http://.*:(\d{4})/\?token", buf, flags=re.M)
-            if m:
-                break
-        if m:
-            port = m.group(1)
-            self._ports.add(port)
-        _log.info(f"(end) open notebook at path={nb_path} port={port}")
-
-    def stop(self):
-        for port in self._ports:
-            self._stop(port)
-
-    @classmethod
-    def _stop(cls, port):
-        _log.info(f"(start) stop running notebook, port={port}")
-        p = Popen([cls.COMMAND, "notebook", "stop", port])
-        try:
-            p.wait(timeout=5)
-            _log.info(f"(end) stop running notebook, port={port}: Success")
-        except TimeoutExpired:
-            _log.info(f"(end) stop running notebook, port={port}: Timeout")
-
-
-class NotebookDescription:
-    def __init__(self, nb: dict, widget):
-        self._text = "_Select a notebook to view its description_"
-        self._nb = nb
-        self._w = widget
-        # self._print()
-        self._html_parser = html_parser.HTMLTextParser()
-        self._html()
-
-    def show(self, section, name, type_):
-        key = ((section,), name, type_)
-        self._text = self._nb[key].description
-        # self._print()
-        self._html()
-
-    def _html(self):
-        m_html = markdown.markdown(
-            self._text, extensions=["extra", "codehilite"], output_format="html"
-        )
-        self._set_html(self._pre_html(m_html))
-
-    @staticmethod
-    def _pre_html(text):
-        text = re.sub(r"<code>(.*?)</code>", r"<em>\1</em>", text)
-        text = re.sub(
-            r"<sub>(.*?)</sub>", r"<span style='font-size: 50%'>\1</span>", text
-        )
-        text = re.sub(r"<h1>(.*?)</h1>", r"<h1 style='font-size: 120%'>\1</h1>", text)
-        text = re.sub(r"<h2>(.*?)</h2>", r"<h2 style='font-size: 110%'>\1</h2>", text)
-        text = re.sub(r"<h3>(.*?)</h3>", r"<h3 style='font-size: 100%'>\1</h3>", text)
-        return f"<div style='font-size: 80%; " \
-               f"font-family: \"Helvetica Neue\", Helvetica, Arial, sans-serif;'>" \
-               f"{text}</div>"
-
-    def _set_html(self, html, strip=True):
-        widget = self._w
-        prev_state = widget.cget("state")
-        widget.config(state=sg.tk.NORMAL)
-        widget.delete("1.0", sg.tk.END)
-        widget.tag_delete(widget.tag_names)
-        self._html_parser.w_set_html(widget, html, strip=strip)
-        widget.config(state=prev_state)
-
-    def get_path(self, section, name, type_) -> Path:
-        key = ((section,), name, type_)
-        return self._nb[key].path
-
-    def _print(self):
-        self._w.update("")
-        pre = True
-        for line in self._text:
-            # Check that line is non-empty and not a leading blank
-            if not line:
-                continue
-            lstr = line.strip()
-            if pre and lstr == "":
-                continue
-            # Check that line is not an image
-            if lstr.startswith("!["):
-                continue
-            # Line will be displayed
-            pre = False
-            font_size, font_weight, font_color = FONT[1], "", "#444"
-            # Change style for headings
-            if lstr.startswith("#"):
-                depth = 1
-                while lstr.startswith("#" * depth):
-                    depth += 1
-                font_size += (4 - min(depth, 3)) * 2
-                font_weight = "bold"
-                line = line[depth:].strip() + "\n"
-                font_color = "#333"
-            # Display line
-            self._w.update(
-                line,
-                append=True,
-                font_for_value=(FONT[0], font_size, font_weight),
-                text_color_for_value=font_color,
-            )
 
 
 # -------------

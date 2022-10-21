@@ -108,6 +108,8 @@ def find_notebooks(
                 if path.exists():
                     callback(path, **kwargs)
                     n += 1
+                else:
+                    raise FileNotFoundError(f"Could not find notebook at: {path}")
     return n
 
 
@@ -120,7 +122,7 @@ exclude_tags = {
 }
 
 
-def _preprocess(nb_path):
+def _preprocess(nb_path: Path, **kwargs):
     _log.info(f"Preprocess: {nb_path}")
     t0 = time.time()
 
