@@ -6,7 +6,7 @@ def add_vb(p, dest="vb"):
         "-v",
         "--verbose",
         action="count",
-        dest="vb",
+        dest=dest,
         default=0,
         help="Increase verbosity",
     )

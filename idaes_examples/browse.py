@@ -12,11 +12,13 @@ from pathlib import Path
 import re
 import sys
 from subprocess import Popen, PIPE, TimeoutExpired
-import time
+import tempfile
 from typing import Tuple, List
 
 # third-party
+import markdown
 import PySimpleGUI as sg
+from tkhtmlview import html_parser
 
 # package
 import idaes_examples
@@ -137,14 +139,18 @@ class Notebooks:
                 for nb in nblist:
                     if nb.type == Ext.DOC.value:
                         base_key = f"nb+{section}+{nb.name}+{nb.type}"
-                        td.insert(section_key, key=base_key, text=nb.title, values=[nb.path])
+                        td.insert(
+                            section_key, key=base_key, text=nb.title, values=[nb.path]
+                        )
                         break
                 if len(nblist) > 1:
                     for nb in nblist:
                         if nb.type != Ext.DOC.value:
                             sub_key = f"nb+{section}+{nb.name}+{nb.type}"
                             subtitle = nb.type.title()
-                            td.insert(base_key, key=sub_key, text=subtitle, values=[nb.path])
+                            td.insert(
+                                base_key, key=sub_key, text=subtitle, values=[nb.path]
+                            )
 
         return td
 
@@ -153,6 +159,8 @@ class Notebook:
     def __init__(self, name: str, section: Tuple, path: Path, nbtype="plain"):
         self.name, self._section = name, section
         self._path = path
+        self._long_desc = ""
+        self._lines = []
         self._get_description()
         self._type = nbtype
 
@@ -192,11 +200,13 @@ class Notebook:
                 self._lines = c1["source"]
                 for line in self._lines:
                     if line.strip().startswith("#"):
-                        self._short_desc = line[line.rfind("#") + 1 :].strip()
+                        last_pound = line.rfind("#")
+                        self._short_desc = line[last_pound + 1 :].strip()
                         break
                 desc = True
         if not desc:
             self._short_desc, self._long_desc = "No description", "No description"
+            self._lines = [self._short_desc]
 
 
 # -------------
@@ -216,6 +226,10 @@ def gui(notebooks):
         expand_x=True,
         write_only=True,
         background_color="white",
+        key="Description",
+    )
+    description_frame = sg.Frame(
+        "Description", layout=[[description_widget]], expand_y=True, expand_x=True
     )
 
     title_max = max(len(t) for t in notebooks.titles())
@@ -241,17 +255,12 @@ def gui(notebooks):
         key="open",
         disabled=True,
         pad=(10, 10),
-        auto_size_button=False
+        auto_size_button=False,
     )
     layout = [
         [
             sg.Frame("Notebooks", [[nb_widget]], expand_y=True, expand_x=True),
-            sg.Frame(
-                "Description",
-                [[description_widget]],
-                expand_y=True,
-                expand_x=True,
-            ),
+            description_frame,
         ],
         [open_widget],
     ]
@@ -260,7 +269,7 @@ def gui(notebooks):
         "IDAES Notebook Browser", layout, size=(1200, 600), finalize=True
     )
 
-    nbdesc = NotebookDescription(notebooks, description_widget)
+    nbdesc = NotebookDescription(notebooks, window["Description"].Widget)
 
     # Event Loop to process "events" and get the "values" of the inputs
     row = -1
@@ -336,15 +345,46 @@ class Jupyter:
 
 class NotebookDescription:
     def __init__(self, nb: dict, widget):
-        self._text = ["Select a notebook to view its description"]
+        self._text = "_Select a notebook to view its description_"
         self._nb = nb
         self._w = widget
-        self._print()
+        # self._print()
+        self._html_parser = html_parser.HTMLTextParser()
+        self._html()
 
     def show(self, section, name, type_):
         key = ((section,), name, type_)
-        self._text = self._nb[key].description_lines
-        self._print()
+        self._text = self._nb[key].description
+        # self._print()
+        self._html()
+
+    def _html(self):
+        m_html = markdown.markdown(
+            self._text, extensions=["extra", "codehilite"], output_format="html"
+        )
+        self._set_html(self._pre_html(m_html))
+
+    @staticmethod
+    def _pre_html(text):
+        text = re.sub(r"<code>(.*?)</code>", r"<em>\1</em>", text)
+        text = re.sub(
+            r"<sub>(.*?)</sub>", r"<span style='font-size: 50%'>\1</span>", text
+        )
+        text = re.sub(r"<h1>(.*?)</h1>", r"<h1 style='font-size: 120%'>\1</h1>", text)
+        text = re.sub(r"<h2>(.*?)</h2>", r"<h2 style='font-size: 110%'>\1</h2>", text)
+        text = re.sub(r"<h3>(.*?)</h3>", r"<h3 style='font-size: 100%'>\1</h3>", text)
+        return f"<div style='font-size: 80%; " \
+               f"font-family: \"Helvetica Neue\", Helvetica, Arial, sans-serif;'>" \
+               f"{text}</div>"
+
+    def _set_html(self, html, strip=True):
+        widget = self._w
+        prev_state = widget.cget("state")
+        widget.config(state=sg.tk.NORMAL)
+        widget.delete("1.0", sg.tk.END)
+        widget.tag_delete(widget.tag_names)
+        self._html_parser.w_set_html(widget, html, strip=strip)
+        widget.config(state=prev_state)
 
     def get_path(self, section, name, type_) -> Path:
         key = ((section,), name, type_)

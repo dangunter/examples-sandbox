@@ -36,6 +36,8 @@ NB_CELLS = "cells"  # key for list of cells in a Jupyter Notebook
 #  Preprocess
 # -------------
 
+NB_ROOT = "nb"  # root folder name
+
 
 class Tags(Enum):
     EX = "exercise"
@@ -52,7 +54,7 @@ class Ext(Enum):
 
 def preprocess(srcdir=None):
     src_path = Path(srcdir) if srcdir else Path(".")
-    src_path /= "src"
+    src_path /= NB_ROOT
 
     toc = read_toc(src_path)
 
@@ -170,7 +172,7 @@ def _preprocess(nb_path):
 
 
 def jupyterbook(srcdir=None):
-    src_path = Path(srcdir) / "src"
+    src_path = Path(srcdir) / NB_ROOT
     if not src_path.is_dir():
         raise FileNotFoundError(f"Could not find directory: {src_path}")
     check_call(["jupyter-book", "build", str(src_path)])
@@ -182,7 +184,7 @@ def jupyterbook(srcdir=None):
 
 
 def view_docs(srcdir=None):
-    docs_path = Path(srcdir) / "src" / "_build" / "html"
+    docs_path = Path(srcdir) / NB_ROOT / "_build" / "html"
     if not docs_path.is_dir():
         raise FileNotFoundError(f"Could not find directory: {docs_path}")
 
