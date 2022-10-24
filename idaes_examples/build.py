@@ -6,6 +6,7 @@ from enum import Enum
 import json
 import logging
 from pathlib import Path
+import shutil
 from subprocess import check_call
 import sys
 import time
@@ -37,6 +38,7 @@ NB_CELLS = "cells"  # key for list of cells in a Jupyter Notebook
 # -------------
 
 NB_ROOT = "nb"  # root folder name
+test_path, src_path = None, None
 
 
 class Tags(Enum):
@@ -53,8 +55,16 @@ class Ext(Enum):
 
 
 def preprocess(srcdir=None):
-    src_path = Path(srcdir) if srcdir else Path(".")
+    global test_path, src_path
+
+    src_path = Path(srcdir)
+    # this allows the command to (also) work if invoked at repo root
+    if not (src_path / NB_ROOT).exists():
+        mod = main.__module__.split(".")[0]
+        if (src_path / mod / NB_ROOT).exists():
+            src_path /= mod
     src_path /= NB_ROOT
+    test_path = src_path / "tests"
 
     toc = read_toc(src_path)
 
@@ -159,7 +169,18 @@ def _preprocess(nb_path: Path, **kwargs):
         for index in exclude_cells[name]:
             del nb_copy[NB_CELLS][index]  # indexes are in reverse order
         # Generate output file for copy
-        nbcopy_path = nb_path.parent / f"{nb_path.stem}_{name}.ipynb"
+        if name == Ext.TEST.value:
+            output_dir = test_path / nb_path.parent.relative_to(src_path)
+            output_dir.mkdir(parents=True, exist_ok=True)
+            # copy support files (assume flat: no directories!)
+            for pattern in "*.py", "*.csv", "*.json", "*.yaml":
+                for support_file in nb_path.parent.glob(pattern):
+                    shutil.copy(support_file, output_dir / support_file.name)
+            output_name = nb_path.name
+        else:
+            output_dir = nb_path.parent
+            output_name = f"{nb_path.stem}_{name}.ipynb"
+        nbcopy_path = output_dir / output_name
         _log.debug(f"Generate '{name}' file: {nbcopy_path}")
         with nbcopy_path.open("w") as nbcopy_file:
             json.dump(nb_copy, nbcopy_file)
@@ -198,7 +219,6 @@ def view_docs(srcdir=None):
 # -------------
 #  Commandline
 # -------------
-
 
 class Commands:
     @classmethod
