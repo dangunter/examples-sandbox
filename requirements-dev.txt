@@ -5,4 +5,8 @@ jupyter-cache ~= 0.4.3
 # version of nbclient, which is required by jupyter-cache
 nbclient ~= 0.5.13
 nbmake ~= 1.3.0
+# markdown in Sphnx
+myst-nb ~= 0.13.2
+myst-parser ~= 0.15.2
+
 -e .
