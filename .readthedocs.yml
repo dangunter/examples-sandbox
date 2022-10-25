@@ -10,7 +10,6 @@ build:
       - "jupyter-book config sphinx idaes_examples/nb/"
 
 python:
-  version: "3.8"
   install:
     - method: pip
       path: .
