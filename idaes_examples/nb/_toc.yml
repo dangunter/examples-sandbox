@@ -13,3 +13,7 @@ parts:
           - file: custom_props/custom_reaction_property_packages_doc
           - file: custom_props/Parameter_estimation_PR_doc
           - file: custom_props/Dictionary_Txy_diagrams_doc
+      - file: custom_units/index
+        sections:
+          - file: custom_units/custom_compressor_doc
+          - file: custom_units/custom_heater_doc
