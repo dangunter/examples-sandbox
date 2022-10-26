@@ -3,10 +3,7 @@ root: index
 parts:
   - caption: Flowsheets
     chapters:
-      - file: hda/index
-        sections:
-          - file: hda/HDA_flowsheet_doc
-          - file: hda/HDA_flowsheet_with_distillation_doc
+      # note: ordered alphabetically
       - file: custom_props/index
         sections:
           - file: custom_props/custom_physical_property_packages_doc
@@ -17,3 +14,12 @@ parts:
         sections:
           - file: custom_units/custom_compressor_doc
           - file: custom_units/custom_heater_doc
+      - file: data_recon/index
+        sections:
+          - file: data_recon/boiler_flowsheet_recon_doc
+          - file: data_recon/econ_recon_doc
+          - file: data_recon/econ_parmest_doc
+      - file: hda/index
+        sections:
+          - file: hda/HDA_flowsheet_doc
+          - file: hda/HDA_flowsheet_with_distillation_doc
