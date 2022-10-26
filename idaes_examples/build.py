@@ -18,7 +18,7 @@ import webbrowser
 import yaml
 
 # package
-from idaes_examples.util import add_vb, process_vb
+from idaes_examples.util import add_vb, process_vb, allow_repo_root, NB_ROOT
 
 # -------------
 #   Logging
@@ -37,7 +37,6 @@ NB_CELLS = "cells"  # key for list of cells in a Jupyter Notebook
 #  Preprocess
 # -------------
 
-NB_ROOT = "nb"  # root folder name
 test_path, src_path = None, None
 
 
@@ -57,12 +56,7 @@ class Ext(Enum):
 def preprocess(srcdir=None):
     global test_path, src_path
 
-    src_path = Path(srcdir)
-    # this allows the command to (also) work if invoked at repo root
-    if not (src_path / NB_ROOT).exists():
-        mod = main.__module__.split(".")[0]
-        if (src_path / mod / NB_ROOT).exists():
-            src_path /= mod
+    src_path = allow_repo_root(Path(srcdir), main)
     src_path /= NB_ROOT
     test_path = src_path / "tests"
 
@@ -137,7 +131,7 @@ def _preprocess(nb_path: Path, **kwargs):
     t0 = time.time()
 
     # Load input file
-    with nb_path.open() as nb_file:
+    with nb_path.open('r', encoding='utf-8') as nb_file:
         nb = json.load(nb_file)
 
     # Find cells to exclude
@@ -195,10 +189,11 @@ def _preprocess(nb_path: Path, **kwargs):
 
 
 def jupyterbook(srcdir=None):
-    src_path = Path(srcdir) / NB_ROOT
-    if not src_path.is_dir():
-        raise FileNotFoundError(f"Could not find directory: {src_path}")
-    check_call(["jupyter-book", "build", str(src_path)])
+    path = allow_repo_root(Path(srcdir), main)
+    path /= NB_ROOT
+    if not path.is_dir():
+        raise FileNotFoundError(f"Could not find directory: {path}")
+    check_call(["jupyter-book", "build", str(path)])
 
 
 # -------------
