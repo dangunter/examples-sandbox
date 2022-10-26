@@ -7,3 +7,9 @@ parts:
         sections:
           - file: hda/HDA_flowsheet_doc
           - file: hda/HDA_flowsheet_with_distillation_doc
+      - file: custom_props/index
+        sections:
+          - file: custom_props/custom_physical_property_packages_doc
+          - file: custom_props/custom_reaction_property_packages_doc
+          - file: custom_props/Parameter_estimation_PR_doc
+          - file: custom_props/Dictionary_Txy_diagrams_doc
