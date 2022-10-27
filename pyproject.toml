@@ -3,6 +3,8 @@ requires = ["setuptools ~= 63.0"]
 
 [tool.pytest.ini_options]
 minversion = "7.0"
+# The '--ignore-glob' args make sure only notebooks
+# ending in _test.ipynb are run
 addopts = """\
      --nbmake \
      --nbmake-timeout=600 \

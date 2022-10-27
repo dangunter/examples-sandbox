@@ -6,7 +6,7 @@ from enum import Enum
 import json
 import logging
 from pathlib import Path
-import shutil
+import re
 from subprocess import check_call
 import sys
 import time
@@ -123,6 +123,11 @@ exclude_tags = {
     Ext.DOC.value: {Tags.EX.value, Tags.TEST.value},
 }
 
+# notebook filenames, e.g. in markdown links
+# NOTE: assume no spaces in filenames
+nb_file_pat = re.compile(r"([a-zA-Z0-9_\-:.+]+)_src\.ipynb")
+nb_file_repl = r"\1_doc.ipynb"
+
 
 def _preprocess(nb_path: Path, **kwargs):
     _log.info(f"Preprocess: {nb_path}")
@@ -159,6 +164,18 @@ def _preprocess(nb_path: Path, **kwargs):
         nb_copy[NB_CELLS] = nb[NB_CELLS].copy()
         for index in exclude_cells[name]:
             del nb_copy[NB_CELLS][index]  # indexes are in reverse order
+        # replace occurrences of notebook files with _doc extension so xrefs work
+        if name == Ext.DOC.value:
+            for cell in nb_copy[NB_CELLS]:
+                cell_replace = {}
+                for i, line in enumerate(cell["source"]):
+                    if nb_file_pat.search(line):
+                        cell_replace[i] = nb_file_pat.sub(nb_file_repl, line)
+                if cell_replace:
+                    for i in cell_replace:
+                        print(f"@@ replace cell source[{i}]: {cell_replace[i]} ")
+                        cell["source"][i] = cell_replace[i]
+                    print(f"@@ {name} cell source: {cell['source']}")
         # Generate output file for copy
         output_dir = nb_path.parent
         base_name = nb_path.stem[:-src_suffix_len]

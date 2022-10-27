@@ -33,3 +33,4 @@ parts:
           - file: surrogates/flowsheet_optimization/best_practices_optimization_doc
           - file: surrogates/flowsheet_optimization/keras_flowsheet_optimization_doc
           - file: surrogates/flowsheet_optimization/pysmo_flowsheet_optimization_doc
+          - file: surrogates/pysmo/pysmo_basics_doc
