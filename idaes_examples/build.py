@@ -37,7 +37,6 @@ NB_CELLS = "cells"  # key for list of cells in a Jupyter Notebook
 #  Preprocess
 # -------------
 
-test_path, src_path = None, None
 src_suffix = "_src"
 src_suffix_len = 4
 
@@ -56,19 +55,13 @@ class Ext(Enum):
 
 
 def preprocess(srcdir=None):
-    global test_path, src_path
-
     src_path = allow_repo_root(Path(srcdir), main)
     src_path /= NB_ROOT
-    test_path = src_path / "tests"
-
     toc = read_toc(src_path)
-
     t0 = time.time()
     n = find_notebooks(src_path, toc, _preprocess)
     dur = time.time() - t0
     _log.info(f"Preprocessed {n} notebooks in {dur:.1f} seconds")
-
     return n
 
 
@@ -152,11 +145,10 @@ def _preprocess(nb_path: Path, **kwargs):
         # Add cell to each notebook in which it should not be excluded
         for name, ex_tags in exclude_tags.items():
             if cell_tags & ex_tags:
-                exclude_cells[name].insert(
-                    0, cell_index
-                )  # reverse order, so delete works
+                # add in reverse order to make delete easier
+                exclude_cells[name].insert(0, cell_index)
 
-    # Wite output files
+    # Write output files
     nb_names = [Ext.TEST.value, Ext.DOC.value]
     is_tutorial = had_tag & {Tags.EX, Tags.SOL}
     if is_tutorial:
@@ -168,15 +160,6 @@ def _preprocess(nb_path: Path, **kwargs):
         for index in exclude_cells[name]:
             del nb_copy[NB_CELLS][index]  # indexes are in reverse order
         # Generate output file for copy
-        # if name == Ext.TEST.value:
-        #     output_dir = test_path / nb_path.parent.relative_to(src_path)
-        #     output_dir.mkdir(parents=True, exist_ok=True)
-        #     # copy support files (assume flat: no directories!)
-        #     for pattern in "*.py", "*.csv", "*.json", "*.yaml":
-        #         for support_file in nb_path.parent.glob(pattern):
-        #             shutil.copy(support_file, output_dir / support_file.name)
-        #     output_name = nb_path.name
-        # else:
         output_dir = nb_path.parent
         base_name = nb_path.stem[:-src_suffix_len]
         output_name = f"{base_name}_{name}.ipynb"
@@ -190,9 +173,31 @@ def _preprocess(nb_path: Path, **kwargs):
 
 
 # -------------
-#  Jupyterbook
+# Clean
 # -------------
 
+def clean(srcdir=None):
+    src_path = allow_repo_root(Path(srcdir), main)
+    src_path /= NB_ROOT
+    toc = read_toc(src_path)
+    find_notebooks(src_path, toc, _clean)
+
+
+def _clean(nb_path: Path, **kwargs):
+    """Remove generated files"""
+    nb_names = [Ext.TEST.value, Ext.DOC.value, Ext.EX.value, Ext.SOL.value]
+    for name in nb_names:
+        base_name = nb_path.stem[:-src_suffix_len]
+        gen_name = f"{base_name}_{name}.ipynb"
+        gen_path = nb_path.parent / gen_name
+        if gen_path.exists():
+            _log.debug(f"Remove generated file '{gen_path}'")
+            gen_path.unlink()
+
+
+# -------------
+#  Jupyterbook
+# -------------
 
 def jupyterbook(srcdir=None):
     path = allow_repo_root(Path(srcdir), main)
@@ -240,6 +245,11 @@ class Commands:
         cls.heading("View Jupyterbook documentation")
         return cls._run("view jupyterbook", view_docs, srcdir=args.dir)
 
+    @classmethod
+    def clean(cls, args):
+        cls.heading("Remove generated notebooks")
+        return cls._run("remove generated notebooks", clean, srcdir=args.dir)
+
     @staticmethod
     def _run(name, func, **kwargs):
         try:
@@ -272,6 +282,7 @@ def main():
         ("pre", "Pre-process notebooks"),
         ("build", "Build Jupyterbook"),
         ("view", "View Jupyterbook"),
+        ("clean", "Remove generated files"),
     ):
         subp[name] = commands.add_parser(name, help=desc)
         subp[name].add_argument(
