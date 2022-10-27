@@ -27,3 +27,9 @@ parts:
         sections:
           - file: hda/HDA_flowsheet_doc
           - file: hda/HDA_flowsheet_with_distillation_doc
+      - file: surrogates/index # Surrogate modeling
+        sections:
+          - file: surrogates/flowsheet_optimization/alamo_flowsheet_optimization_doc
+          - file: surrogates/flowsheet_optimization/best_practices_optimization_doc
+          - file: surrogates/flowsheet_optimization/keras_flowsheet_optimization_doc
+          - file: surrogates/flowsheet_optimization/pysmo_flowsheet_optimization_doc
