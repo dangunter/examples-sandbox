@@ -6,6 +6,8 @@ build:
     python: "3.8"
   jobs:
     pre_build:
+      # Generate variations on the base notebook files, in particular one for docs.
+      - "idaesx pre"
       # Generate the Sphinx configuration for this Jupyter Book, so it builds.
       - "jupyter-book config sphinx idaes_examples/nb/"
 

@@ -3,7 +3,14 @@ requires = ["setuptools ~= 63.0"]
 
 [tool.pytest.ini_options]
 minversion = "7.0"
-addopts = "--nbmake --nbmake-timeout=600"
+addopts = """\
+     --nbmake \
+     --nbmake-timeout=600 \
+     --ignore-glob=*_doc.ipynb \
+     --ignore-glob=*_exercise.ipynb \
+     --ignore-glob=*_solution.ipynb \
+     --ignore-glob=*_src.ipynb\
+"""
 testpaths = [
-    "idaes_examples/nb/tests"
+    "idaes_examples/nb"
 ]

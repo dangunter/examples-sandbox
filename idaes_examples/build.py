@@ -38,6 +38,8 @@ NB_CELLS = "cells"  # key for list of cells in a Jupyter Notebook
 # -------------
 
 test_path, src_path = None, None
+src_suffix = "_src"
+src_suffix_len = 4
 
 
 class Tags(Enum):
@@ -66,6 +68,8 @@ def preprocess(srcdir=None):
     n = find_notebooks(src_path, toc, _preprocess)
     dur = time.time() - t0
     _log.info(f"Preprocessed {n} notebooks in {dur:.1f} seconds")
+
+    return n
 
 
 def read_toc(src_path: Path) -> Dict:
@@ -108,6 +112,7 @@ def find_notebooks(
         for chapter in part["chapters"]:
             for filemap in chapter["sections"]:
                 filename = filemap["file"][:-4]  # strip "_doc" suffix
+                filename += src_suffix
                 path = nbpath / f"{filename}.ipynb"
                 if path.exists():
                     callback(path, **kwargs)
@@ -163,17 +168,18 @@ def _preprocess(nb_path: Path, **kwargs):
         for index in exclude_cells[name]:
             del nb_copy[NB_CELLS][index]  # indexes are in reverse order
         # Generate output file for copy
-        if name == Ext.TEST.value:
-            output_dir = test_path / nb_path.parent.relative_to(src_path)
-            output_dir.mkdir(parents=True, exist_ok=True)
-            # copy support files (assume flat: no directories!)
-            for pattern in "*.py", "*.csv", "*.json", "*.yaml":
-                for support_file in nb_path.parent.glob(pattern):
-                    shutil.copy(support_file, output_dir / support_file.name)
-            output_name = nb_path.name
-        else:
-            output_dir = nb_path.parent
-            output_name = f"{nb_path.stem}_{name}.ipynb"
+        # if name == Ext.TEST.value:
+        #     output_dir = test_path / nb_path.parent.relative_to(src_path)
+        #     output_dir.mkdir(parents=True, exist_ok=True)
+        #     # copy support files (assume flat: no directories!)
+        #     for pattern in "*.py", "*.csv", "*.json", "*.yaml":
+        #         for support_file in nb_path.parent.glob(pattern):
+        #             shutil.copy(support_file, output_dir / support_file.name)
+        #     output_name = nb_path.name
+        # else:
+        output_dir = nb_path.parent
+        base_name = nb_path.stem[:-src_suffix_len]
+        output_name = f"{base_name}_{name}.ipynb"
         nbcopy_path = output_dir / output_name
         _log.debug(f"Generate '{name}' file: {nbcopy_path}")
         with nbcopy_path.open("w") as nbcopy_file:
@@ -223,6 +229,9 @@ class Commands:
 
     @classmethod
     def build(cls, args):
+        if not args.no_pre:
+            cls.heading("Pre-process notebooks")
+            cls._run("pre-process notebooks", preprocess, srcdir=args.dir)
         cls.heading("Build Jupyterbook")
         return cls._run("build jupyterbook", jupyterbook, srcdir=args.dir)
 
@@ -269,6 +278,9 @@ def main():
             "-d", "--dir", help="Source directory (default=<current>)", default="."
         )
         add_vb(subp[name], dest=f"vb_{name}")
+    subp["build"].add_argument(
+        "--no-pre", action="store_true", help="skip pre-processing", default=False,
+    )
     args = p.parse_args()
     subvb = getattr(args, f"vb_{args.command}")
     if subvb != args.vb:
