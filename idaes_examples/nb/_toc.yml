@@ -19,6 +19,10 @@ parts:
           - file: data_recon/boiler_flowsheet_recon_doc
           - file: data_recon/econ_recon_doc
           - file: data_recon/econ_parmest_doc
+      - file: dae/index # Differential algebraic solvers
+        sections:
+          - file: dae/petsc_chem_doc
+          - file: dae/petsc_pid_doc
       - file: hda/index # Hydrodealkylation
         sections:
           - file: hda/HDA_flowsheet_doc
