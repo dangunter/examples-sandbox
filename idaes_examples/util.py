@@ -1,5 +1,16 @@
+"""
+Common (utility) methods for tests and other scripts.
+"""
+# stdlib
 import logging
 from pathlib import Path
+from typing import Dict, Callable
+
+# third-party
+import yaml
+
+src_suffix = "_src"
+src_suffix_len = 4
 
 
 NB_ROOT = "nb"  # root folder name
@@ -35,3 +46,52 @@ def allow_repo_root(src_path, func) -> Path:
             src_path /= mod
     return src_path
 
+
+def read_toc(src_path: Path) -> Dict:
+    """Read and parse Jupyterbook table of contents.
+
+    Args:
+        src_path: Path to source directory containing TOC file
+
+    Returns:
+        Parsed TOC contents
+
+    Raises:
+        FileNotFoundError: If TOC file does not exist
+    """
+    toc_path = src_path / "_toc.yml"
+    if not toc_path.exists():
+        raise FileNotFoundError(f"Could not find path: {toc_path}")
+    with toc_path.open() as toc_file:
+        toc = yaml.safe_load(toc_file)
+    return toc
+
+
+def find_notebooks(
+    nbpath: Path, toc: Dict, callback: Callable[[Path, ...], None], **kwargs
+) -> int:
+    """Find and preprocess all notebooks in a Jupyterbook TOC.
+
+    Args:
+        nbpath: Path to root of notebook files
+        toc: Table of contents from Jupyterbook
+        callback: Function called for each found notebook, with the path to that
+                  notebook as its first argument.
+        **kwargs: Additional arguments passed through to the callback
+
+    Returns:
+        Number of notebooks processed
+    """
+    n = 0
+    for part in toc["parts"]:
+        for chapter in part["chapters"]:
+            for filemap in chapter["sections"]:
+                filename = filemap["file"][:-4]  # strip "_doc" suffix
+                filename += src_suffix
+                path = nbpath / f"{filename}.ipynb"
+                if path.exists():
+                    callback(path, **kwargs)
+                    n += 1
+                else:
+                    raise FileNotFoundError(f"Could not find notebook at: {path}")
+    return n

@@ -14,11 +14,17 @@ import traceback
 from typing import Callable, Dict
 import webbrowser
 
-# third-party
-import yaml
-
 # package
-from idaes_examples.util import add_vb, process_vb, allow_repo_root, NB_ROOT
+from idaes_examples.util import (
+    add_vb,
+    process_vb,
+    allow_repo_root,
+    NB_ROOT,
+    read_toc,
+    find_notebooks,
+    src_suffix,
+    src_suffix_len,
+)
 
 # -------------
 #   Logging
@@ -36,9 +42,6 @@ NB_CELLS = "cells"  # key for list of cells in a Jupyter Notebook
 # -------------
 #  Preprocess
 # -------------
-
-src_suffix = "_src"
-src_suffix_len = 4
 
 
 class Tags(Enum):
@@ -62,56 +65,6 @@ def preprocess(srcdir=None):
     n = find_notebooks(src_path, toc, _preprocess)
     dur = time.time() - t0
     _log.info(f"Preprocessed {n} notebooks in {dur:.1f} seconds")
-    return n
-
-
-def read_toc(src_path: Path) -> Dict:
-    """Read and parse Jupyterbook table of contents.
-
-    Args:
-        src_path: Path to source directory containing TOC file
-
-    Returns:
-        Parsed TOC contents
-
-    Raises:
-        FileNotFoundError: If TOC file does not exist
-    """
-    toc_path = src_path / "_toc.yml"
-    if not toc_path.exists():
-        raise FileNotFoundError(f"Could not find path: {toc_path}")
-    with toc_path.open() as toc_file:
-        toc = yaml.safe_load(toc_file)
-    return toc
-
-
-def find_notebooks(
-    nbpath: Path, toc: Dict, callback: Callable[[Path, ...], None], **kwargs
-) -> int:
-    """Find and preprocess all notebooks in a Jupyterbook TOC.
-
-    Args:
-        nbpath: Path to root of notebook files
-        toc: Table of contents from Jupyterbook
-        callback: Function called for each found notebook, with the path to that
-                  notebook as its first argument.
-        **kwargs: Additional arguments passed through to the callback
-
-    Returns:
-        Number of notebooks processed
-    """
-    n = 0
-    for part in toc["parts"]:
-        for chapter in part["chapters"]:
-            for filemap in chapter["sections"]:
-                filename = filemap["file"][:-4]  # strip "_doc" suffix
-                filename += src_suffix
-                path = nbpath / f"{filename}.ipynb"
-                if path.exists():
-                    callback(path, **kwargs)
-                    n += 1
-                else:
-                    raise FileNotFoundError(f"Could not find notebook at: {path}")
     return n
 
 
@@ -157,8 +110,9 @@ def _preprocess(nb_path: Path, **kwargs):
                 # add in reverse order to make delete easier
                 exclude_cells[name].insert(0, cell_index)
         # Look for (and save) lines with cross references
-        xref_lines = [i for i, line in enumerate(cell["source"])
-                      if nb_file_pat.search(line)]
+        xref_lines = [
+            i for i, line in enumerate(cell["source"]) if nb_file_pat.search(line)
+        ]
         if xref_lines:
             xref_cells[cell_index] = xref_lines
 
