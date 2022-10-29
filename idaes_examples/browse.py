@@ -20,7 +20,11 @@ from tkhtmlview import html_parser
 # package
 import idaes_examples
 from idaes_examples.common import (
-    find_notebooks, read_toc, NB_CELLS, Ext
+    find_notebooks,
+    read_toc,
+    NB_CELLS,
+    Ext,
+    src_suffix_len,
 )
 
 # -------------
@@ -66,6 +70,7 @@ def find_notebook_dir() -> Path:
         else:
             p = Path(d)
             if p.stem == "nb":
+                _log.debug(f"find_noteboo_dir: root_path={p}")
                 root_path = p
                 break
             for item in d.iterdir():
@@ -74,8 +79,8 @@ def find_notebook_dir() -> Path:
 
 
 class Notebooks:
-    """Container for all known Jupyter notebooks.
-    """
+    """Container for all known Jupyter notebooks."""
+
     DEFAULT_SORT_KEYS = ("section", "name", "type")
 
     def __init__(self, sort_keys=DEFAULT_SORT_KEYS):
@@ -91,7 +96,7 @@ class Notebooks:
         self._tree = self._as_tree()
 
     def _add_notebook(self, path: Path, **kwargs):
-        name = path.stem
+        name = path.stem[:-src_suffix_len]
         section = path.relative_to(self._root).parts[:-1]
         for ext in Ext.DOC.value, Ext.EX.value, Ext.SOL.value:
             tpath = path.parent / f"{name}_{ext}.ipynb"
@@ -111,8 +116,7 @@ class Notebooks:
         return self._nb
 
     def titles(self) -> List[str]:
-        """Get list of all titles for notebooks.
-        """
+        """Get list of all titles for notebooks."""
         return [nb.title for nb in self._nb.values()]
 
     def __getitem__(self, key):
@@ -173,8 +177,8 @@ class Notebooks:
 
 
 class Notebook:
-    """Interface for metadata of one Jupyter notebook.
-    """
+    """Interface for metadata of one Jupyter notebook."""
+
     def __init__(self, name: str, section: Tuple, path: Path, nbtype="plain"):
         self.name, self._section = name, section
         self._path = path
@@ -220,7 +224,7 @@ class Notebook:
                 for line in self._lines:
                     if line.strip().startswith("#"):
                         last_pound = line.rfind("#")
-                        self._short_desc = line[last_pound + 1:].strip()
+                        self._short_desc = line[last_pound + 1 :].strip()
                         break
                 desc = True
         if not desc:
@@ -229,8 +233,8 @@ class Notebook:
 
 
 class Jupyter:
-    """Run Jupyter notebooks.
-    """
+    """Run Jupyter notebooks."""
+
     COMMAND = "jupyter"
 
     def __init__(self):
@@ -282,8 +286,8 @@ class Jupyter:
 
 
 class NotebookDescription:
-    """Show notebook descriptions in a UI widget.
-    """
+    """Show notebook descriptions in a UI widget."""
+
     def __init__(self, nb: dict, widget):
         self._text = "_Select a notebook to view its description_"
         self._nb = nb
@@ -302,14 +306,21 @@ class NotebookDescription:
         Returns:
             None
         """
-        key = ((section,), name, type_)
+        key = self._make_key(section, name, type_)
         self._text = self._nb[key].description
         # self._print()
         self._html()
 
+    @staticmethod
+    def _make_key(section, name, type_):
+        if ":" in section:
+            section_tuple = tuple(section.split(":"))
+        else:
+            section_tuple = (section,)
+        return section_tuple, name, type_
+
     def _html(self):
-        """Convert markdown source to HTML using the 'markdown' package.
-        """
+        """Convert markdown source to HTML using the 'markdown' package."""
         m_html = markdown.markdown(
             self._text, extensions=["extra", "codehilite"], output_format="html"
         )
@@ -327,9 +338,11 @@ class NotebookDescription:
         text = re.sub(r"<h1>(.*?)</h1>", r"<h1 style='font-size: 120%'>\1</h1>", text)
         text = re.sub(r"<h2>(.*?)</h2>", r"<h2 style='font-size: 110%'>\1</h2>", text)
         text = re.sub(r"<h3>(.*?)</h3>", r"<h3 style='font-size: 100%'>\1</h3>", text)
-        return f"<div style='font-size: 80%; " \
-               f"font-family: \"Helvetica Neue\", Helvetica, Arial, sans-serif;'>" \
-               f"{text}</div>"
+        return (
+            f"<div style='font-size: 80%; "
+            f'font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;\'>'
+            f"{text}</div>"
+        )
 
     def _set_html(self, html, strip=True):
         w = self._w
@@ -341,7 +354,7 @@ class NotebookDescription:
         w.config(state=prev_state)
 
     def get_path(self, section, name, type_) -> Path:
-        key = ((section,), name, type_)
+        key = self._make_key(section, name, type_)
         return self._nb[key].path
 
 

@@ -224,6 +224,7 @@ class Commands:
 
     @classmethod
     def gui(cls, args):
+        browse._log.setLevel(_log.getEffectiveLevel())
         nb = browse.Notebooks()
         if args.console:
             for val in nb._sorted_values:
