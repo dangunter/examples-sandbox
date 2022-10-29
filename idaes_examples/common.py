@@ -1,7 +1,8 @@
 """
-Common (utility) methods for tests and other scripts.
+Common variables and methods for tests and scripts.
 """
 # stdlib
+from enum import Enum
 import logging
 from pathlib import Path
 from typing import Dict, Callable
@@ -14,6 +15,20 @@ src_suffix_len = 4
 
 
 NB_ROOT = "nb"  # root folder name
+NB_CELLS = "cells"  # key for list of cells in a Jupyter Notebook
+
+
+class Tags(Enum):
+    EX = "exercise"
+    SOL = "solution"
+    TEST = "testing"
+
+
+class Ext(Enum):
+    DOC = "doc"
+    EX = "exercise"
+    SOL = "solution"
+    TEST = "test"
 
 
 def add_vb(p, dest="vb"):

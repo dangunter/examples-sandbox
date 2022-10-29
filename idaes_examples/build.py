@@ -2,7 +2,6 @@
 Build the examples
 """
 import argparse
-from enum import Enum
 import json
 import logging
 from pathlib import Path
@@ -11,20 +10,23 @@ from subprocess import check_call
 import sys
 import time
 import traceback
-from typing import Callable, Dict
 import webbrowser
 
 # package
-from idaes_examples.util import (
+from idaes_examples.common import (
     add_vb,
     process_vb,
     allow_repo_root,
     NB_ROOT,
+    NB_CELLS,
     read_toc,
     find_notebooks,
     src_suffix,
     src_suffix_len,
+    Ext,
+    Tags
 )
+from idaes_examples import browse
 
 # -------------
 #   Logging
@@ -37,24 +39,9 @@ _h.setFormatter(
 )
 _log.addHandler(_h)
 
-NB_CELLS = "cells"  # key for list of cells in a Jupyter Notebook
-
 # -------------
 #  Preprocess
 # -------------
-
-
-class Tags(Enum):
-    EX = "exercise"
-    SOL = "solution"
-    TEST = "testing"
-
-
-class Ext(Enum):
-    DOC = "doc"
-    EX = "exercise"
-    SOL = "solution"
-    TEST = "test"
 
 
 def preprocess(srcdir=None):
@@ -235,6 +222,20 @@ class Commands:
         cls.heading("Remove generated notebooks")
         return cls._run("remove generated notebooks", clean, srcdir=args.dir)
 
+    @classmethod
+    def gui(cls, args):
+        nb = browse.Notebooks()
+        if args.console:
+            for val in nb._sorted_values:
+                pth = Path(val.path).relative_to(Path.cwd())
+                print(f"{val.type}{' '*(10 - len(val.type))} {val.title} -> {pth}")
+            status = 0
+        else:
+            _log.info(f"Run GUI start")
+            status = browse.gui(nb)
+            _log.info(f"Run GUI end")
+        return status
+
     @staticmethod
     def _run(name, func, **kwargs):
         try:
@@ -268,6 +269,7 @@ def main():
         ("build", "Build Jupyterbook"),
         ("view", "View Jupyterbook"),
         ("clean", "Remove generated files"),
+        ("gui", "Graphical notebook browser"),
     ):
         subp[name] = commands.add_parser(name, help=desc)
         subp[name].add_argument(
@@ -280,6 +282,7 @@ def main():
         help="skip pre-processing",
         default=False,
     )
+    subp["gui"].add_argument("--console", action="store_true", dest="console")
     args = p.parse_args()
     subvb = getattr(args, f"vb_{args.command}")
     if subvb != args.vb:

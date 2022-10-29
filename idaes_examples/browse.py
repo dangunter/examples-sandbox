@@ -2,7 +2,6 @@
 Graphical examples browser
 """
 # stdlib
-import argparse
 from importlib import resources
 import json
 import logging
@@ -10,20 +9,19 @@ from logging.handlers import RotatingFileHandler
 from operator import attrgetter
 from pathlib import Path
 import re
-import sys
 from subprocess import Popen, PIPE, TimeoutExpired
-import tempfile
 from typing import Tuple, List, Dict
 
 # third-party
 import markdown
-import PySimpleGUI as sg
+import PySimpleGUI as PySG
 from tkhtmlview import html_parser
 
 # package
 import idaes_examples
-from idaes_examples.build import find_notebooks, read_toc, NB_CELLS, Ext
-from idaes_examples.util import add_vb, process_vb
+from idaes_examples.common import (
+    find_notebooks, read_toc, NB_CELLS, Ext
+)
 
 # -------------
 #   Logging
@@ -120,14 +118,14 @@ class Notebooks:
     def __getitem__(self, key):
         return self._nb[key]
 
-    def as_tree(self) -> sg.TreeData:
+    def as_tree(self) -> PySG.TreeData:
         """Get notebooks as a tree suitable for displaying in a PySimpleGUI
         Tree widget.
         """
         return self._tree
 
-    def _as_tree(self) -> sg.TreeData:
-        td = sg.TreeData()
+    def _as_tree(self) -> PySG.TreeData:
+        td = PySG.TreeData()
 
         # organize notebooks hierarchically
         data = {}
@@ -222,7 +220,7 @@ class Notebook:
                 for line in self._lines:
                     if line.strip().startswith("#"):
                         last_pound = line.rfind("#")
-                        self._short_desc = line[last_pound + 1 :].strip()
+                        self._short_desc = line[last_pound + 1:].strip()
                         break
                 desc = True
         if not desc:
@@ -336,8 +334,8 @@ class NotebookDescription:
     def _set_html(self, html, strip=True):
         w = self._w
         prev_state = w.cget("state")
-        w.config(state=sg.tk.NORMAL)
-        w.delete("1.0", sg.tk.END)
+        w.config(state=PySG.tk.NORMAL)
+        w.delete("1.0", PySG.tk.END)
         w.tag_delete(w.tag_names)
         self._html_parser.w_set_html(w, html, strip=strip)
         w.config(state=prev_state)
@@ -355,28 +353,28 @@ FONT = ("Helvetica", 11)
 
 
 def gui(notebooks):
-    sg.theme("Material1")
+    PySG.theme("Material1")
 
     nb_tree = notebooks.as_tree()
 
-    description_widget = sg.Multiline(
+    description_widget = PySG.Multiline(
         expand_y=True,
         expand_x=True,
         write_only=True,
         background_color="white",
         key="Description",
     )
-    description_frame = sg.Frame(
+    description_frame = PySG.Frame(
         "Description", layout=[[description_widget]], expand_y=True, expand_x=True
     )
 
     title_max = max(len(t) for t in notebooks.titles())
 
-    nb_widget = sg.Tree(
+    nb_widget = PySG.Tree(
         nb_tree,
         headings=[],
         col0_width=title_max,
-        select_mode=sg.TABLE_SELECT_MODE_EXTENDED,
+        select_mode=PySG.TABLE_SELECT_MODE_EXTENDED,
         key="-TREE-",
         show_expanded=True,
         expand_y=True,
@@ -385,7 +383,7 @@ def gui(notebooks):
         font=FONT,
     )
 
-    open_widget = sg.Button(
+    open_widget = PySG.Button(
         "Open",
         tooltip="Open the selected notebook",
         button_color=("white", "#03f"),
@@ -397,25 +395,24 @@ def gui(notebooks):
     )
     layout = [
         [
-            sg.Frame("Notebooks", [[nb_widget]], expand_y=True, expand_x=True),
+            PySG.Frame("Notebooks", [[nb_widget]], expand_y=True, expand_x=True),
             description_frame,
         ],
         [open_widget],
     ]
     # create main window
-    window = sg.Window(
+    window = PySG.Window(
         "IDAES Notebook Browser", layout, size=(1200, 600), finalize=True
     )
 
     nbdesc = NotebookDescription(notebooks, window["Description"].Widget)
 
     # Event Loop to process "events" and get the "values" of the inputs
-    row = -1
     jupyter = Jupyter()
     while True:
         event, values = window.read()
         # if user closes window or clicks cancel
-        if event == sg.WIN_CLOSED or event == "Cancel":
+        if event == PySG.WIN_CLOSED or event == "Cancel":
             break
         # print(event, values)
         if isinstance(event, int):
@@ -442,34 +439,3 @@ def gui(notebooks):
     _log.info("Close main window")
     window.close()
     return 0
-
-
-# -------------
-#   main
-# -------------
-
-
-def main() -> int:
-    p = argparse.ArgumentParser()
-    p.add_argument("--console", action="store_true", dest="console")
-    add_vb(p)
-    args = p.parse_args()
-    process_vb(_log, args.vb)
-
-    _log.info(f"Find notebooks {L_START}")
-    nb = Notebooks()
-    _log.info(f"Find notebooks {L_END}: num={len(nb)}")
-    if args.console:
-        for val in nb._sorted_values:
-            pth = Path(val.path).relative_to(Path.cwd())
-            print(f"{val.type}{' '*(10 - len(val.type))} {val.title} -> {pth}")
-        status = 0
-    else:
-        _log.info(f"Run GUI {L_START}")
-        status = gui(nb)
-        _log.info(f"Run GUI {L_END}")
-    return status
-
-
-if __name__ == "__main__":
-    sys.exit(main())

@@ -6,6 +6,7 @@ minversion = "7.0"
 # The '--ignore-glob' args make sure only notebooks
 # ending in _test.ipynb are run
 addopts = """\
+     -n=auto \
      --nbmake \
      --nbmake-timeout=600 \
      --ignore-glob=*_doc.ipynb \

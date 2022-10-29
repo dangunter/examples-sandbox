@@ -20,9 +20,7 @@ kwargs = dict(
     ],
     entry_points={
        "console_scripts": [
-           # XXX: Make this one script
            "idaesx = idaes_examples.build:main",
-           "idaesx-browse = idaes_examples.browse:main",
        ]
     },
     # Only installed if [<key>] is added to package name

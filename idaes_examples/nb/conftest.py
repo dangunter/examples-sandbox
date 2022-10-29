@@ -7,9 +7,10 @@ from pathlib import Path
 g_pre = -1  # number of pre-processed notebooks
 
 
-def pytest_collectstart(collector):
+def pytest_configure(config):
     global g_pre
     if g_pre < 0:
+        g_pre = 0
         p = Path(build.__file__).parent
         g_pre = build.preprocess(p)
 
