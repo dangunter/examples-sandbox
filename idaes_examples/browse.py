@@ -366,16 +366,23 @@ FONT = ("Helvetica", 11)
 
 
 def gui(notebooks):
-    PySG.theme("Material1")
+    PySG.theme("Material2")
 
     nb_tree = notebooks.as_tree()
 
+    sbar_kwargs = dict(
+        sbar_trough_color=PySG.theme_background_color(),
+        sbar_background_color="lightgrey",
+        sbar_frame_color="grey",
+        sbar_arrow_color="grey",
+    )
     description_widget = PySG.Multiline(
         expand_y=True,
         expand_x=True,
         write_only=True,
         background_color="white",
         key="Description",
+        **sbar_kwargs
     )
     description_frame = PySG.Frame(
         "Description", layout=[[description_widget]], expand_y=True, expand_x=True
@@ -385,8 +392,10 @@ def gui(notebooks):
 
     nb_widget = PySG.Tree(
         nb_tree,
+        border_width=0,
         headings=[],
-        col0_width=title_max,
+        col0_width=title_max * 5 // 6,
+        auto_size_columns=True,
         select_mode=PySG.TABLE_SELECT_MODE_EXTENDED,
         key="-TREE-",
         show_expanded=True,
@@ -394,28 +403,36 @@ def gui(notebooks):
         expand_x=True,
         enable_events=True,
         font=FONT,
+        vertical_scroll_only=True,
+        header_border_width=0,
+        header_background_color="white",
+        **sbar_kwargs
     )
 
     open_widget = PySG.Button(
         "Open",
         tooltip="Open the selected notebook",
-        button_color=("white", "#03f"),
-        disabled_button_color=("grey", "grey"),
+        button_color=("white", "#0079D3"),
+        disabled_button_color=("#696969", "#EEEEEE"),
+        border_width=0,
         key="open",
         disabled=True,
         pad=(10, 10),
         auto_size_button=False,
+        use_ttk_buttons=True,
     )
     layout = [
         [
-            PySG.Frame("Notebooks", [[nb_widget]], expand_y=True, expand_x=True),
+            nb_widget,
+            #PySG.Frame("Notebooks", [[nb_widget]], expand_y=True, expand_x=True),
             description_frame,
         ],
         [open_widget],
     ]
     # create main window
     window = PySG.Window(
-        "IDAES Notebook Browser", layout, size=(1200, 600), finalize=True
+        "IDAES Notebook Browser", layout, size=(1200, 600), finalize=True,
+        #background_color="#F0FFFF"
     )
 
     nbdesc = NotebookDescription(notebooks, window["Description"].Widget)
@@ -429,7 +446,7 @@ def gui(notebooks):
             break
         # print(event, values)
         if isinstance(event, int):
-            _log.debug("Unhandled event")
+            _log.debug(f"Unhandled event: {event}")
         elif event == "-TREE-":
             what = values.get("-TREE-", [""])[0]
             if notebooks.is_tree_section(what) or notebooks.is_tree_root(what):
