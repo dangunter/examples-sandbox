@@ -1,15 +1,26 @@
-# examples-sandbox
+# IDAES Examples
 
-IDAES examples
+Instructions and notes for IDAES examples.
 
 ## For Users
 
-Good luck!
+### Install
+
+For now, see the *For Developers* -> *Install* section.
+
+### Browse notebooks
+
+Use the `idaesx gui` command to get a simple graphical UI that lets you browse and open notebooks (in a Jupyter server) for local execution.
+
+### Build documentation locally
+
+See the *For Developers* -> *Build documentation* section.
 
 ## For Developers
 
 This section is intented for people who are creating and modifying examples.
-The examples are primarily in Jupyter Notebooks, though Python support files and data are commonly used to keep the notebooks short and more us
+The examples are primarily in Jupyter Notebooks.
+Python support files and data may be used to keep the notebooks focused on the interactive material.
 
 ### Install
 
@@ -69,3 +80,11 @@ Other extensions are automatically generated when running tests, building the do
 
 [1]: https://jupyterbook.org/
 
+### Create example
+
+There are only two steps to creating a new notebook example.
+
+1. Create Jupyter notebook, whose name *should* be in lowercase with underscores and ***must*** end with "_src.ipynb". Add any data files, images, or Python files needed for it to run. Add and stage all these changes in Git.
+2. Add Jupyter notebook, with name notebook-name`_doc` (no .ipynb extension) to the Jupyterbook table of contents. This file is in `idaes_examples/nb/_toc.yml`. If you created a new section for this notebook, make sure you add an *index.md* file for this section (see other *index.md* files for examples).
+
+There is no step 3 but please try and test the new notebook and build it locally before pushing the new files.
