@@ -1,6 +1,11 @@
 # IDAES Examples
 
-Instructions and notes for IDAES examples.
+This repository contains Jupyter Notebooks (and supporting Python scripts and data) that demonstrate the capabilities of the IDAES platform.
+
+Using the `idaesx` command that comes with this repository, the contained Jupyter Notebooks can be opened and run locally (`idaesx gui`) or built into [Jupyterbook][1] documentation (`idaesx build`).
+The standard Python test runner, `pytest`, can be used to test that all the notebooks execute successfully.
+
+The rest of this README is broken into separate sections for users, to view or run examples, and for developers, who may contribute modifications or new examples to the repository.
 
 ## For Users
 
@@ -14,7 +19,12 @@ Use the `idaesx gui` command to get a simple graphical UI that lets you browse a
 
 ### Build documentation locally
 
-See the *For Developers* -> *Build documentation* section.
+Run `idaesx build` from the repository root. For more details, see the *For Developers* -> *Build documentation* section.
+
+### Run tests
+
+Run `pytest` from the repository root.
+For more details, see the *For Developers* -> *Run tests* section.
 
 ## For Developers
 
@@ -82,9 +92,15 @@ Other extensions are automatically generated when running tests, building the do
 
 ### Create example
 
-There are only two steps to creating a new notebook example.
+There are two main steps to creating a new notebook example.
 
-1. Create Jupyter notebook, whose name *should* be in lowercase with underscores and ***must*** end with "_src.ipynb". Add any data files, images, or Python files needed for it to run. Add and stage all these changes in Git.
-2. Add Jupyter notebook, with name notebook-name`_doc` (no .ipynb extension) to the Jupyterbook table of contents. This file is in `idaes_examples/nb/_toc.yml`. If you created a new section for this notebook, make sure you add an *index.md* file for this section (see other *index.md* files for examples).
+1. Add Jupyter Notebook and supporting files
+   1. If this is a new category of notebooks, create a directory. The directory name *should* be in lowercase with underscores between words. For example: 'machine_learning'.
+   2. Notebook filename *should* be in lowercase with underscores and ***must*** end with '_src.ipynb'. For example: 'my_example_src.ipynb'.
+   3. Add -- in the same directory as the notebook -- any data files, images, or Python files needed for it to run.
+2. Add Jupyter notebook to the Jupyterbook table of contents in *idaes_examples/nb/_toc.yml*.
+   1. The notebook will be a *section*. If you added a new directory, you will create a new *chapter*, otherwise it will go under an existing one. See [Jupyterbook][1] documentation for more details.
+   2. Refer to the notebook as '*path/to/notebook-name*_doc' (replace '_src' with '_doc' and drop the '.ipynb' extension). For example: 'machine_learning/my_example_doc'.
+   3. If you created a new directory for this notebook, make sure you add an *index.md* file to it. See other *index.md* files for the expected format.
 
-There is no step 3 but please try and test the new notebook and build it locally before pushing the new files.
+You *should*  test the new notebook and build it locally before pushing the new file, i.e., run `pytest` and `idaesx build`.
