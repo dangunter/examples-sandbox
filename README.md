@@ -2,7 +2,7 @@
 
 This repository contains Jupyter Notebooks (and supporting Python scripts and data) that demonstrate the capabilities of the IDAES platform.
 
-Using the `idaesx` command that comes with this repository, the contained Jupyter Notebooks can be opened and run locally (`idaesx gui`) or built into [Jupyterbook][1] documentation (`idaesx build`).
+Using the `idaesx` command that comes with this repository, the contained Jupyter Notebooks can be opened and run locally (`idaesx gui`) or built into [Jupyterbook][jb] documentation (`idaesx build`).
 The standard Python test runner, `pytest`, can be used to test that all the notebooks execute successfully.
 
 The rest of this README is broken into separate sections for users, to view or run examples, and for developers, who may contribute modifications or new examples to the repository.
@@ -60,7 +60,7 @@ Different tests are run in the idaes_examples directory because there is a *pyte
 
 ### Build documentation
 
-The documentation is built using [Jupyterbook][1].
+The documentation is built using [Jupyterbook][jb].
 We have written a thin layer around the Jupyterbook executable, which is installed as a command-line program *idaesx*.
 To build the documentation, run:
 
@@ -88,7 +88,6 @@ Other extensions are automatically generated when running tests, building the do
 * notebook-name`_exercise`.ipynb: For tutorial notebooks. Rests and solution cells are stripped.
 * notebook-name`_solution`.ipynb: For tutorial notebooks. Tests are stripped and solution cells are left in.
 
-[1]: https://jupyterbook.org/
 
 ### Create example
 
@@ -104,3 +103,34 @@ There are two main steps to creating a new notebook example.
    3. If you created a new directory for this notebook, make sure you add an *index.md* file to it. See other *index.md* files for the expected format.
 
 You *should*  test the new notebook and build it locally before pushing the new file, i.e., run `pytest` and `idaesx build`.
+
+#### Jupyter Notebook cell tags
+
+Each source Jupyter notebook (ending in '_src.ipynb') is preprocessed to create additional notebooks which are a copy of the original with some cells (steps in the notebook execution) removed.
+
+| Notebook type | Description        | Ends with     |
+| ------------- | ------------------ | ------------- |
+| source        | Notebook source    | _src.ipynb |
+| testing       | Run for testing    | _test.ipynb  |
+| exercise      | Tutorial exercises  | _exercise.ipynb |
+| solution      | Tutorial exercises and solutions  | _solution.ipynb |
+| documentation | Show in documentation | _doc.ipynb | 
+
+This process uses the feature of Jupyter notebook [cell tags][celltags] to understand which additional notebooks to create.
+
+The following tags are understood by the preprocessing step:
+
+| Tag | Result |
+| --- | ------ |
+| testing | Remove this cell, except in the <em>testing</em> notebooks |
+| exercise | The presence of this tag means a notebook is a tutorial. Generate an *exercise* and *solution* notebook, and keep this cell in both. Remove this cell in the *documentation* notebook. |
+| solution | The presence of this tag means a notebook is a tutorial. Generate an *exercise* and *solution* notebook, but remove this cell in the *solution* notebook; keep the cell in the *documentation* notebook. |
+
+In addition, the [Jupyterbook tags][hidecell] for hiding or removing cells will be passed through and used for generating the documentaton.
+
+<!-- 
+   References 
+-->
+[jb]: https://jupyterbook.org/
+[hidecell]: https://jupyterbook.org/en/stable/interactive/hiding.html
+[celltags]: https://jupyterbook.org/en/stable/content/metadata.html
