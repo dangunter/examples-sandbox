@@ -43,6 +43,8 @@ _log.addHandler(_h)
 #  Preprocess
 # -------------
 
+DEV_DIR = "_dev"  # special directory to include in preprocessing
+
 
 def preprocess(srcdir=None):
     src_path = allow_repo_root(Path(srcdir), main)
@@ -50,6 +52,8 @@ def preprocess(srcdir=None):
     toc = read_toc(src_path)
     t0 = time.time()
     n = find_notebooks(src_path, toc, _preprocess)
+    for dev_file in (src_path / DEV_DIR).glob(f"*{src_suffix}.ipynb"):
+        _preprocess(dev_file)
     dur = time.time() - t0
     _log.info(f"Preprocessed {n} notebooks in {dur:.1f} seconds")
     return n
@@ -57,17 +61,18 @@ def preprocess(srcdir=None):
 
 # Which tags to exclude for which generated file
 exclude_tags = {
-    Ext.TEST.value: {Tags.EX.value},
-    Ext.EX.value: {Tags.TEST.value, Tags.SOL.value},
-    Ext.SOL.value: {Tags.TEST.value},
-    Ext.DOC.value: {Tags.EX.value, Tags.TEST.value},
+    Ext.TEST.value: {Tags.EX.value, Tags.NOAUTO.value},
+    Ext.EX.value: {Tags.TEST.value, Tags.SOL.value, Tags.AUTO.value},
+    Ext.SOL.value: {Tags.TEST.value, Tags.AUTO.value},
+    Ext.DOC.value: {Tags.TEST.value, Tags.NOAUTO.value},
+    Ext.USER.value: {Tags.TEST.value, Tags.AUTO.value}  # same as _solution
 }
 
 # notebook filenames, e.g. in markdown links
 # NOTE: assume no spaces in filenames
 nb_file_pat = re.compile(f"([a-zA-Z0-9_\\-:.+]+){src_suffix}\\.ipynb")
 nb_file_subs = {e.value: f"\\1_{e.value}.ipynb" for e in Ext if e != Ext.DOC}
-# For MyST, replace .ipynb with .md in the 'doc' version
+# For MyST, replace .ipynb with .md in the 'doc' notebook's link
 nb_file_subs[Ext.DOC.value] = f"\\1_{Ext.DOC.value}.md"
 
 
@@ -105,7 +110,7 @@ def _preprocess(nb_path: Path, **kwargs):
 
     # Write output files
 
-    nb_names = [Ext.TEST.value, Ext.DOC.value]
+    nb_names = [Ext.TEST.value, Ext.DOC.value, Ext.USER.value]
     is_tutorial = had_tag & {Tags.EX, Tags.SOL}
     if is_tutorial:
         nb_names.extend([Ext.EX.value, Ext.SOL.value])
@@ -121,7 +126,8 @@ def _preprocess(nb_path: Path, **kwargs):
             cs = cell["source"]  # alias
             saved_source.append((cell_index, cs.copy()))  # save orig
             for line_index in xref_cells[cell_index]:
-                cs[line_index] = nb_file_pat.sub(nb_file_subs[name], cs[line_index])
+                subst = nb_file_pat.sub(nb_file_subs[name], cs[line_index])
+                cs[line_index] = subst
         # Delete excluded cells
         for index in exclude_cells[name]:
             del nb_copy[NB_CELLS][index]  # indexes are in reverse order

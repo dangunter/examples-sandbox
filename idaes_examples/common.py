@@ -22,6 +22,8 @@ class Tags(Enum):
     EX = "exercise"
     SOL = "solution"
     TEST = "testing"
+    AUTO = "auto"
+    NOAUTO = "noauto"
 
 
 class Ext(Enum):
@@ -29,6 +31,8 @@ class Ext(Enum):
     EX = "exercise"
     SOL = "solution"
     TEST = "test"
+    USER = "usr"
+
 
 
 def add_vb(p, dest="vb"):

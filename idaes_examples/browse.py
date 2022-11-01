@@ -98,7 +98,7 @@ class Notebooks:
     def _add_notebook(self, path: Path, **kwargs):
         name = path.stem[:-src_suffix_len]
         section = path.relative_to(self._root).parts[:-1]
-        for ext in Ext.DOC.value, Ext.EX.value, Ext.SOL.value:
+        for ext in Ext.USER.value, Ext.EX.value, Ext.SOL.value:
             tpath = path.parent / f"{name}_{ext}.ipynb"
             if tpath.exists():
                 key = (section, name, ext)
@@ -147,9 +147,9 @@ class Notebooks:
             td.insert(self._root_key, key=section_key, text=section, values=[])
             for name, nblist in data[section].items():
                 base_key = None
-                # Make an entry for the base ('doc') notebook
+                # Make an entry for the base notebook
                 for nb in nblist:
-                    if nb.type == Ext.DOC.value:
+                    if nb.type == Ext.USER.value:
                         base_key = f"nb+{section}+{nb.name}+{nb.type}"
                         td.insert(
                             section_key, key=base_key, text=nb.title, values=[nb.path]
@@ -158,7 +158,7 @@ class Notebooks:
                 # Make sub-entries for examples, tutorials, etc. (if there are any)
                 if len(nblist) > 1:
                     for nb in nblist:
-                        if nb.type != Ext.DOC.value:
+                        if nb.type != Ext.USER.value:
                             sub_key = f"nb+{section}+{nb.name}+{nb.type}"
                             # The name of the sub-entry is its type, since it will be
                             # visually listed under the title of the base entry.
