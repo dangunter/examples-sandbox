@@ -7,16 +7,16 @@ import shutil
 import yaml
 
 
-def copy_files(dirmap: dict, src: Path, tgt: Path):
+def copy_files(dirmap: dict, src: Path, tgt: Path, ow: bool = False):
     for item in dirmap["map"]:
         for k, v in item.items():
             src_path = src / k
             tgt_path = tgt / v
             print(f"Copy '{src_path}' -> '{tgt_path}'")
-            copy_subdir(src_path, tgt_path)
+            copy_subdir(src_path, tgt_path, ow)
 
 
-def copy_subdir(src: Path, tgt: Path):
+def copy_subdir(src: Path, tgt: Path, ow: bool):
     stack = [(src, tgt)]
     while stack:
         src, tgt = stack.pop()
@@ -37,9 +37,11 @@ def copy_subdir(src: Path, tgt: Path):
                         st = st[:-(len(strip_ending) + 7)] + ".ipynb"
                         break
                 tgt = Path((st[:-6] + "_src.ipynb").lower())
-            if tgt.exists():
+            if (not ow) and tgt.exists():
                 print(f"** SKIP ** existing file '{tgt}'")
             else:
+                if ow:
+                    print(f"Overwrite existing file '{tgt}'")
                 print(f"Copy file '{src}' -> '{tgt}'")
                 shutil.copy(src, tgt)
 
@@ -49,12 +51,13 @@ def main():
     p.add_argument("source_dir")
     p.add_argument("target_dir")
     p.add_argument("--map", default="map.yml")
+    p.add_argument("--overwrite", action="store_true", default=False)
     args = p.parse_args()
     #
     with open(args.map, "r", encoding="utf-8") as mapfile:
         dirmap = yaml.safe_load(mapfile)
         print(f"Loaded map from '{mapfile.name}'")
-    copy_files(dirmap, Path(args.source_dir), Path(args.target_dir))
+    copy_files(dirmap, Path(args.source_dir), Path(args.target_dir), ow=args.overwrite)
 
 
 if __name__ == "__main__":

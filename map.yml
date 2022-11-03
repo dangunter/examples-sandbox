@@ -1,6 +1,6 @@
 map:
     - Examples/DAE: dae
-    - Examples/Flowsheets: hda
+    - Examples/Flowsheets: flowsheets
     - Examples/MatOpt: matopt
     - Examples/Pecos: pecos
     - Examples/Tools: tools
