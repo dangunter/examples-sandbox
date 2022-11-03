@@ -1,5 +1,5 @@
 """
-Edit tags in files
+Edit tags in files (use after copy-files.py)
 """
 import argparse
 from pathlib import Path
