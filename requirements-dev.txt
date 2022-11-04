@@ -10,5 +10,7 @@ myst-nb ~= 0.13.2
 myst-parser ~= 0.15.2
 # parallel pytest
 pytest-xdist ~= 3.0.2
+# For jupyter notebook testing
+black[jupyter] ~= 22.8.0
 
 -e .
