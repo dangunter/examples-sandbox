@@ -1,7 +1,7 @@
 format: jb-book
 parts:
 - caption: Flowsheets
-- chapters:
+  chapters:
   - file: dae/index
     sections:
     - file: dae/petsc_chem_doc
@@ -62,8 +62,6 @@ parts:
     - file: surrogates/flowsheet_optimization/best_practices_optimization_doc
     - file: surrogates/flowsheet_optimization/keras_flowsheet_optimization_doc
     - file: surrogates/flowsheet_optimization/pysmo_flowsheet_optimization_doc
-  - file: surrogates/helmet/index
-    sections: []
   - file: surrogates/pysmo/index
     sections:
     - file: surrogates/pysmo/pysmo_basics_doc

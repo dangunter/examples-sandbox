@@ -16,8 +16,8 @@ class TableOfContents:
             "format": "jb-book",
             "root": "index",
             "parts": [
-                {"caption": "Flowsheets"},
-                {"chapters": []}
+                {"caption": "Flowsheets",
+                 "chapters": []}
             ],
         }
         self._titles = {}
@@ -35,14 +35,14 @@ class TableOfContents:
         yaml.dump(self._body, strm)
 
     def _add_chapter(self, d):
-        chapters = self._body["parts"][1]["chapters"]
+        chapters = self._body["parts"][0]["chapters"]
         chapters.append({
             "file": f"{d}/index",
             "sections": []
         })
 
     def _add_section(self, d, s):
-        chapters = self._body["parts"][1]["chapters"]
+        chapters = self._body["parts"][0]["chapters"]
         for c in chapters:
             if c["file"][:c["file"].rfind("/")] == d:
                 entry = {"file": f"{d}/{s}_doc"}
