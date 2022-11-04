@@ -12,7 +12,6 @@ map:
     - Examples/Flowsheets/power_generation/subcritical: power_generation/subcritical
     - Examples/Flowsheets/power_generation/supercritical: power_generation/supercritical
     - Examples/SurrMod/FlowsheetOptimization: surrogates/flowsheet_optimization
-    - Examples/SurrMod/Helmet: surrogates/helmet
     - Examples/SurrMod/PySMO: surrogates/pysmo
     - Examples/SurrMod/RIPE: surrogates/ripe
     - Examples/UnitModels/Operations: unit_models/operations
