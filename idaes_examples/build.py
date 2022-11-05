@@ -78,7 +78,26 @@ nb_file_subs[Ext.DOC.value] = f"\\1_{Ext.DOC.value}.md"
 
 def _preprocess(nb_path: Path, **kwargs):
     _log.info(f"Preprocess: {nb_path}")
+
+    def ext_path(p: Path, ext: Ext = None, name: str = None) -> Path:
+        """Return new path with extension changed."""
+        name, base = name or ext.value, p.stem[:-src_suffix_len]
+        p_new = p.parent / f"{base}_{name}.ipynb"
+        _log.debug(f"Path[{name}] = '{p_new}'")
+        return p_new
+
     t0 = time.time()
+
+    # Check whether source was changed after any of the derived notebooks
+    src_mtime, changed = nb_path.stat().st_mtime, False
+    for ext in Ext:
+        p_ext = ext_path(nb_path, ext=ext)
+        if not p_ext.exists() or p_ext.stat().st_mtime <= src_mtime:
+            changed = True
+            break
+    if not changed:
+        _log.info(f"Skip preprocessing notebook {nb_path} (source unchanged)")
+        return
 
     # Load input file
     with nb_path.open("r", encoding="utf-8") as nb_file:
@@ -132,10 +151,7 @@ def _preprocess(nb_path: Path, **kwargs):
         for index in exclude_cells[name]:
             del nb_copy[NB_CELLS][index]  # indexes are in reverse order
         # Generate output file
-        output_dir = nb_path.parent
-        base_name = nb_path.stem[:-src_suffix_len]
-        output_name = f"{base_name}_{name}.ipynb"
-        nbcopy_path = output_dir / output_name
+        nbcopy_path = ext_path(nb_path, name=name)
         _log.debug(f"Generate '{name}' file: {nbcopy_path}")
         with nbcopy_path.open("w") as nbcopy_file:
             json.dump(nb_copy, nbcopy_file)
