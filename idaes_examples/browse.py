@@ -182,7 +182,7 @@ class Notebook:
     def __init__(self, name: str, section: Tuple, path: Path, nbtype="plain"):
         self.name, self._section = name, section
         self._path = path
-        self._long_desc = ""
+        self._long_desc, self._short_desc = "", name
         self._lines = []
         self._get_description()
         self._type = nbtype
