@@ -11,7 +11,6 @@ parts:
     - file: flowsheets/hda_flowsheet_with_costing_doc
     - file: flowsheets/hda_flowsheet_with_distillation_doc
     - file: flowsheets/methanol_synthesis_doc
-    - file: flowsheets/test1_doc
   - file: matopt/index
     sections:
     - file: matopt/bifunctional_surface_design_doc
