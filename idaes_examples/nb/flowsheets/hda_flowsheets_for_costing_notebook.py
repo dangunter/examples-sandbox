@@ -80,8 +80,8 @@ def hda_with_flash(tee=True):
         outlvl = idaeslog.ERROR
 
     # Import thermodynamic and reaction property packages
-    from idaes_examples.common.hda import hda_ideal_VLE as thermo_props
-    from idaes_examples.common.hda import hda_reaction as reaction_props
+    from idaes_examples.nb.common import hda_ideal_VLE as thermo_props
+    from idaes_examples.nb.common import hda_reaction as reaction_props
 
     # build flowsheet
     print('Building flowsheet...')

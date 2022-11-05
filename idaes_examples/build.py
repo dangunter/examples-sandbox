@@ -24,7 +24,7 @@ from idaes_examples.common import (
     src_suffix,
     src_suffix_len,
     Ext,
-    Tags
+    Tags,
 )
 from idaes_examples import browse
 
@@ -65,7 +65,7 @@ exclude_tags = {
     Ext.EX.value: {Tags.TEST.value, Tags.SOL.value, Tags.AUTO.value},
     Ext.SOL.value: {Tags.TEST.value, Tags.AUTO.value},
     Ext.DOC.value: {Tags.TEST.value, Tags.NOAUTO.value},
-    Ext.USER.value: {Tags.TEST.value, Tags.AUTO.value}  # same as _solution
+    Ext.USER.value: {Tags.TEST.value, Tags.AUTO.value},  # same as _solution
 }
 
 # notebook filenames, e.g. in markdown links
@@ -160,8 +160,8 @@ def clean(srcdir=None):
 
 def _clean(nb_path: Path, **kwargs):
     """Remove generated files"""
-    nb_names = [Ext.TEST.value, Ext.DOC.value, Ext.EX.value, Ext.SOL.value]
-    for name in nb_names:
+    for e in Ext:
+        name = e.value
         base_name = nb_path.stem[:-src_suffix_len]
         gen_name = f"{base_name}_{name}.ipynb"
         gen_path = nb_path.parent / gen_name
