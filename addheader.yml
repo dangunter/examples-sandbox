@@ -1,0 +1,14 @@
+# Usage: 
+# addheader -c addheader.yml
+---
+root: idaes_examples/nb
+text: file_header.txt
+patterns:
+   - '~conf*.py'
+   - '*.py'
+   - ~__init__.py
+path_exclude:
+   - '*_build*'
+verbose: 1
+sep-len: 80
+...
