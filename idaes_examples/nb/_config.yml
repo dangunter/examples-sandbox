@@ -3,7 +3,7 @@ title: IDAES Examples
 author: The IDAES Team
 logo: logo.png
 execute:
-  execute_notebooks: cache
+  execute_notebooks: auto
 only_build_toc_files: true
 
 # Add citations in this file
