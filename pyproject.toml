@@ -12,7 +12,9 @@ addopts = """\
      --ignore-glob=*_doc.ipynb \
      --ignore-glob=*_exercise.ipynb \
      --ignore-glob=*_solution.ipynb \
-     --ignore-glob=*_src.ipynb\
+     --ignore-glob=*_src.ipynb \
+     --ignore-glob=*_usr.ipynb \
+     --report-log=pytest-report.log\
 """
 testpaths = [
     "idaes_examples/nb"
