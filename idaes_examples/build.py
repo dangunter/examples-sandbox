@@ -192,11 +192,23 @@ def _clean(nb_path: Path, **kwargs):
 
 
 def jupyterbook(srcdir=None):
+    # build commandline with path arg
     path = allow_repo_root(Path(srcdir), main)
     path /= NB_ROOT
     if not path.is_dir():
         raise FileNotFoundError(f"Could not find directory: {path}")
-    check_call(["jupyter-book", "build", str(path)])
+    commandline = ["jupyter-book", "build", str(path)]
+    # pass verbosity through
+    vb_count = 0
+    if _log.isEnabledFor(logging.DEBUG):
+        vb_count = 2
+    elif _log.isEnabledFor(logging.INFO):
+        vb_count = 1
+    if vb_count > 0:
+        vbs = "v" * vb_count
+        commandline.append(f"-{vbs}")
+    # run build
+    check_call(commandline)
 
 
 # -------------
