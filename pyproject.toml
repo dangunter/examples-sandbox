@@ -1,5 +1,80 @@
 [build-system]
-requires = ["setuptools ~= 63.0"]
+requires = [
+    "setuptools>=61",
+    "wheel"
+]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "examples"
+description = "IDAES Process Systems Engineering Examples"
+readme = "README.md"
+version = "2.0.0a1"
+license = {text="BSD"}
+requires-python = ">=3.7"
+authors = [
+    {name="The IDAES Project"},
+    {name="Dan Gunter", email="dkgunter@lbl.gov"}
+]
+classifiers = [
+        "Development Status :: 3 - Alpha",
+        "Intended Audience :: End Users/Desktop",
+        "Intended Audience :: Science/Research",
+        "License :: OSI Approved :: BSD License",
+        "Natural Language :: English",
+        "Operating System :: MacOS",
+        "Operating System :: Microsoft :: Windows",
+        "Operating System :: Unix",
+        "Programming Language :: Python",
+        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: Implementation :: CPython",
+        "Topic :: Scientific/Engineering :: Mathematics",
+        "Topic :: Scientific/Engineering :: Chemistry",
+        "Topic :: Software Development :: Libraries :: Python Modules",
+]
+dependencies = [
+    "pyyaml"
+]
+keywords = ["IDAES", "energy systems", "chemical engineering", "process modeling"]
+
+[project.urls]
+github = "https://github.com/idaes/examples"
+issues = "https://github.com/idaes/examples/issues"
+
+[project.scripts]
+idaesx = "idaes_examples.build:main"
+
+[tool.setuptools]
+include-package-data = true
+zip-safe = false
+
+[tool.setuptools.packages.find]
+where = [
+    "*.template",
+    "*.json",
+    "*.yaml",
+    "*.svg",
+    "*.png",
+    "*.jpg",
+    "*.csv",
+    "*.ipynb",
+    "*.txt",
+    "*.js",
+    "*.css",
+    "*.html",
+    "*.json.gz",
+    "*.dat",
+    "*.h5",
+    "*.pb",  # for Keras Surrogate folder
+    "*.data-00000-of-00001",  # for Keras Surrogate folder
+    "*.index",  # for Keras Surrogate folder
+    "*.trc",
+    "*.xlsx",  # idaes/dmf/tests/data_files - tabular import test files
+]
 
 [tool.pytest.ini_options]
 minversion = "7.0"
