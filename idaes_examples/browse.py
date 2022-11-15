@@ -33,28 +33,34 @@ from idaes_examples.common import (
 
 use_file = False
 log_dir = Path.home() / ".idaes" / "logs"
-if log_dir.exists():
-    use_file = True
-else:
-    try:
-        log_dir.mkdir(exist_ok=True, parents=True)
-        use_file = True
-    except OSError:
-        pass
-_log = logging.getLogger("idaes_examples")
-if use_file:
-    _h = RotatingFileHandler(
-        log_dir / "nb_browser.log", maxBytes=64 * 1024, backupCount=5
-    )
-else:
-    _h = logging.StreamHandler()
-_h.setFormatter(
-    logging.Formatter("[%(levelname)s] %(asctime)s %(name)s::%(module)s - %(message)s")
-)
-_log.addHandler(_h)
-_log.setLevel(logging.INFO)
-
 L_START, L_END = "-start-", "-end-"
+
+
+def setup_logging():
+    global use_file, log_dir
+
+    if log_dir.exists():
+        use_file = True
+    else:
+        try:
+            log_dir.mkdir(exist_ok=True, parents=True)
+            use_file = True
+        except OSError:
+            pass
+    _log = logging.getLogger("idaes_examples")
+    if use_file:
+        _h = RotatingFileHandler(
+            log_dir / "nb_browser.log", maxBytes=64 * 1024, backupCount=5
+        )
+    else:
+        _h = logging.StreamHandler()
+    _h.setFormatter(
+        logging.Formatter("[%(levelname)s] %(asctime)s %(name)s::%(module)s "
+                          "- %(message)s")
+    )
+    _log.addHandler(_h)
+    _log.setLevel(logging.INFO)
+
 
 # -------------
 
@@ -366,6 +372,7 @@ FONT = ("Helvetica", 11)
 
 
 def gui(notebooks):
+    setup_logging()
     PySG.theme("Material2")
 
     nb_tree = notebooks.as_tree()

@@ -86,8 +86,6 @@ parts:
     - file: unit_models/reactors/stoichiometric_reactor_doc
   - file: param_est/index
     sections:
-    - file: param_est/dmf_1_for_parameter_estimation_nrtl_using_unit_model_doc
-    - file: param_est/dmf_2_flash_unit_model_with_nrtl_doc
     - file: param_est/parameter_estimation_nrtl_using_state_block_doc
     - file: param_est/parameter_estimation_nrtl_using_unit_model_doc
   - file: tut/index
