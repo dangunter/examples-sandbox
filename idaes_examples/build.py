@@ -16,9 +16,11 @@ import webbrowser
 from idaes_examples.common import (
     add_vb,
     process_vb,
+    add_vb_flags,
     allow_repo_root,
     NB_ROOT,
     NB_CELLS,
+    NB_META,
     read_toc,
     find_notebooks,
     src_suffix,
@@ -134,6 +136,12 @@ def _preprocess(nb_path: Path, **kwargs):
     if is_tutorial:
         nb_names.extend([Ext.EX.value, Ext.SOL.value])
 
+    # allow notebook metadata to skip certain outputs (e.g. 'test')
+    if "idaes" in nb[NB_META]:
+        for skip_ext in nb[NB_META]["idaes"].get("skip", []):
+            nb_names.remove(skip_ext)
+            _log.info(f"Skipping '{skip_ext}' for notebook '{nb_path}'")
+
     for name in nb_names:
         nb_copy = nb.copy()
         nb_copy[NB_CELLS] = nb[NB_CELLS].copy()
@@ -187,6 +195,16 @@ def _clean(nb_path: Path, **kwargs):
 
 
 # -------------
+# Black
+# -------------
+
+def black(srcdir=None):
+    src_path = allow_repo_root(Path(srcdir), main) / NB_ROOT
+    commandline = ["black", "--include", ".*_src\\.ipynb", str(src_path)]
+    add_vb_flags(_log, commandline)
+    check_call(commandline)
+
+# -------------
 #  Jupyterbook
 # -------------
 
@@ -198,15 +216,7 @@ def jupyterbook(srcdir=None):
     if not path.is_dir():
         raise FileNotFoundError(f"Could not find directory: {path}")
     commandline = ["jupyter-book", "build", str(path)]
-    # pass verbosity through
-    vb_count = 0
-    if _log.isEnabledFor(logging.DEBUG):
-        vb_count = 2
-    elif _log.isEnabledFor(logging.INFO):
-        vb_count = 1
-    if vb_count > 0:
-        vbs = "v" * vb_count
-        commandline.append(f"-{vbs}")
+    add_vb_flags(_log, commandline)
     # run build
     check_call(commandline)
 
@@ -257,6 +267,11 @@ class Commands:
         return cls._run("remove generated notebooks", clean, srcdir=args.dir)
 
     @classmethod
+    def black(cls, args):
+        cls.heading("Format code in notebooks with Black")
+        return cls._run("format notebook code", black, srcdir=args.dir)
+
+    @classmethod
     def gui(cls, args):
         browse._log.setLevel(_log.getEffectiveLevel())
         nb = browse.Notebooks()
@@ -304,6 +319,7 @@ def main():
         ("build", "Build Jupyterbook"),
         ("view", "View Jupyterbook"),
         ("clean", "Remove generated files"),
+        ("black", "Format code in notebooks with Black"),
         ("gui", "Graphical notebook browser"),
     ):
         subp[name] = commands.add_parser(name, help=desc)

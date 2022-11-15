@@ -74,7 +74,14 @@ def test_black():
     _, stderr_data = proc.communicate(timeout=20)
     if proc.returncode != 0:
         # print out errors for pytest's captured stdout
+        failed_names = []
         for line in stderr_data.decode("utf-8").split(os.linesep):
-            if line.startswith("error"):
-                print(line)
-        assert False, "Black format check failed for *_src.ipynb"
+            if line.startswith("would"):
+                tokens = line.split()
+                name = "??"
+                for i, tok in enumerate(tokens):
+                    if '\\' in tok or '/' in tok:
+                        name = ' '.join(tokens[i:])
+                        break
+                print(f"FAILED: {name}")
+        assert False, f"Black format check failed"

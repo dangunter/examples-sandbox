@@ -16,6 +16,7 @@ src_suffix_len = 4
 
 NB_ROOT = "nb"  # root folder name
 NB_CELLS = "cells"  # key for list of cells in a Jupyter Notebook
+NB_META = "metadata"  # notebook-level metadata key
 
 
 class Tags(Enum):
@@ -32,7 +33,6 @@ class Ext(Enum):
     SOL = "solution"
     TEST = "test"
     USER = "usr"
-
 
 
 def add_vb(p, dest="vb"):
@@ -53,6 +53,17 @@ def process_vb(log, vb):
         log.setLevel(logging.INFO)
     else:
         log.setLevel(logging.WARNING)
+
+
+def add_vb_flags(logger, cmdline):
+    vb_count = 0
+    if logger.isEnabledFor(logging.DEBUG):
+        vb_count = 2
+    elif logger.isEnabledFor(logging.INFO):
+        vb_count = 1
+    if vb_count > 0:
+        vbs = "v" * vb_count
+        cmdline.append(f"-{vbs}")
 
 
 def allow_repo_root(src_path, func) -> Path:

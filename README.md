@@ -56,6 +56,8 @@ To run **integration tests**, from the *root* directory:
 pytest
 ```
 
+If you want to *exclude* certain notebooks from the integration tests, see the _Preprocessing -> Jupyter notebook metadata_ section.
+
 To run the **unit tests** change to do the `idaes_examples` directory, then run the same command:
 
 ```shell
@@ -138,6 +140,17 @@ The following tags are understood by the preprocessing step:
 | auto | This tag means that this cell should **only** be run during automated notebook execution. The cell will be removed in all notebooks **except** _testing_ and _documentation_. 
 
 All other tags, including the standard [Jupyterbook tags][hidecell] for hiding or removing cells, will be ignored.
+
+#### Jupyter notebook metadata
+
+In addition to per-cell tags, the preprocessor also can look at notebook-level metadata.
+This is currently used for only one purpose: to tell the preprocessor not to generate a 'test' notebook, and thereby to skip the given notebook in the tests.
+In order to make this happen, either manually edit the notebook source or use the Jupyter notebook "Edit -> Edit Notebook Metadata" menu item to add the following section to the notebook-level metadata:
+```
+"idaes": {
+   "skip": ["test"]
+}
+```
 
 <!-- 
    References 

@@ -4,6 +4,7 @@ Run pre-processing before tests to guarantee the presence of *_test.ipynb notebo
 from idaes_examples import build
 from pathlib import Path
 
+
 g_pre = -1  # number of pre-processed notebooks
 
 
