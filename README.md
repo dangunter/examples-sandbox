@@ -1,11 +1,30 @@
 # IDAES Examples
 
+**Table of Contents**
+
+* For Users
+  * Install
+  * Browse notebooks
+  * Build documentation locally
+  * Run tests
+* For Developers
+  * Install
+  * Run tests
+  * Build documentation
+  * Preprocessing
+  * Notebook names
+  * Create example
+    * Jupyter Notebook file extensions
+    * Jupyter Notebook cell tags
+    * Jupyter notebook metadata
+
 This repository contains Jupyter Notebooks (and supporting Python scripts and data) that demonstrate the capabilities of the IDAES platform.
 
 Using the `idaesx` command that comes with this repository, the contained Jupyter Notebooks can be opened and run locally (`idaesx gui`) or built into [Jupyterbook][jb] documentation (`idaesx build`).
 The standard Python test runner, `pytest`, can be used to test that all the notebooks execute successfully.
 
 The rest of this README is broken into separate sections for users, to view or run examples, and for developers, who may contribute modifications or new examples to the repository.
+
 
 ----
 

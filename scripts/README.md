@@ -1,11 +1,18 @@
 # Scripts for examples
 This directory has utility scripts (and supporting files) for the repository.
 
+**Table of Contents**
+
+* Scripts for examples
+  * Migration scripts
+  * Other scripts
+
 ## Migration scripts
 
 Some of these work together to help migrate files from the older examples-pse repository into the new structure.
 They could be run from the root of this repository like this:
-```python
+
+```
 # Copy notebook files
 python scripts/copy_files.py \
   ~/src/idaes/examples-pse/src nb \
