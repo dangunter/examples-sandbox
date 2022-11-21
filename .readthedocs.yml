@@ -11,9 +11,9 @@ build:
       # Generate the Sphinx configuration for this Jupyter Book, so it builds.
       - "jupyter-book config sphinx idaes_examples/nb/"
 
-python:
-  install:
-    - requirements: requirements-dev.txt
+#python:
+#  install:
+#    - requirements: requirements-dev.txt
 
 sphinx:
   builder: html
