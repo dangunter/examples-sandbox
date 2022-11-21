@@ -59,13 +59,16 @@ build-backend = "setuptools.build_meta"
 [project.optional-dependencies]
 dev = [
     "jupyter-book ~= 0.13.1",
-    "jupyter-cache ~= 0.4.3",
+    # "jupyter-cache ~= 0.4.3",
+    "jupyter-cache",
     # the older version of nbmake goes with the older
     # version of nbclient, which is required by jupyter-cache
-    "nbclient ~= 0.5.13",
+    # "nbclient ~= 0.5.13",
+    "nbclient",
     # After 1.3.3 we stop getting a deprecation warning.
     # See https://github.com/treebeardtech/nbmake/issues/68
-    "nbmake >= 1.3.3",
+    #"nbmake >= 1.3.3",
+    "nbmake",
     # markdown in Sphinx
     "myst-nb ~= 0.13.2",
     "myst-parser ~= 0.15.2",
