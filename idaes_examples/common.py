@@ -98,15 +98,15 @@ def read_toc(src_path: Path) -> Dict:
 
 
 def find_notebooks(
-    nbpath: Path, toc: Dict, callback: Callable[[Path, ...], None], **kwargs
+    nbpath: Path, toc: Dict, callback, **kwargs
 ) -> int:
     """Find and preprocess all notebooks in a Jupyterbook TOC.
 
     Args:
         nbpath: Path to root of notebook files
         toc: Table of contents from Jupyterbook
-        callback: Function called for each found notebook, with the path to that
-                  notebook as its first argument.
+        callback (Callable[[Path, ...]): Function called for each found notebook,
+                with the path to that notebook as its first argument.
         **kwargs: Additional arguments passed through to the callback
 
     Returns:
