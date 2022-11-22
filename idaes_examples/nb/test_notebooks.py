@@ -23,7 +23,7 @@ from typing import List
 import pytest
 
 # package
-from idaes_examples.common import read_toc, find_notebooks
+from idaes_examples.util import read_toc, find_notebooks
 
 
 # -------------------

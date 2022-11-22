@@ -19,7 +19,7 @@ from tkhtmlview import html_parser
 
 # package
 import idaes_examples
-from idaes_examples.common import (
+from idaes_examples.util import (
     find_notebooks,
     read_toc,
     NB_CELLS,

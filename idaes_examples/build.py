@@ -13,7 +13,7 @@ import traceback
 import webbrowser
 
 # package
-from idaes_examples.common import (
+from idaes_examples.util import (
     add_vb,
     process_vb,
     add_vb_flags,
