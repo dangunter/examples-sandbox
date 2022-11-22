@@ -34,6 +34,7 @@ from idaes_examples.common import (
 use_file = False
 log_dir = Path.home() / ".idaes" / "logs"
 L_START, L_END = "-start-", "-end-"
+_log = logging.getLogger("idaes_examples")
 
 
 def setup_logging():
@@ -47,7 +48,6 @@ def setup_logging():
             use_file = True
         except OSError:
             pass
-    _log = logging.getLogger("idaes_examples")
     if use_file:
         _h = RotatingFileHandler(
             log_dir / "nb_browser.log", maxBytes=64 * 1024, backupCount=5
@@ -223,16 +223,17 @@ class Notebook:
             data = json.load(f)
         cells = data[NB_CELLS]
         if len(cells) > 0:
-            c1 = cells[0]
-            if c1["cell_type"] == "markdown" and "source" in c1 and c1["source"]:
-                self._long_desc = "".join(c1["source"])
-                self._lines = c1["source"]
-                for line in self._lines:
-                    if line.strip().startswith("#"):
-                        last_pound = line.rfind("#")
-                        self._short_desc = line[last_pound + 1 :].strip()
-                        break
-                desc = True
+            for c1 in cells:
+                if c1["cell_type"] == "markdown" and "source" in c1 and c1["source"]:
+                    self._long_desc = "".join(c1["source"])
+                    self._lines = c1["source"]
+                    for line in self._lines:
+                        if line.strip().startswith("#"):
+                            last_pound = line.rfind("#")
+                            self._short_desc = line[last_pound + 1 :].strip()
+                            break
+                    desc = True
+                    break
         if not desc:
             self._short_desc, self._long_desc = "No description", "No description"
             self._lines = [self._short_desc]
