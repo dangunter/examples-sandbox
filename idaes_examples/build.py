@@ -204,19 +204,23 @@ def black(srcdir=None):
     add_vb_flags(_log, commandline)
     check_call(commandline)
 
-# -------------
-#  Jupyterbook
-# -------------
+# --------------------
+#  Jupyterbook (build)
+# --------------------
 
 
-def jupyterbook(srcdir=None):
+def jupyterbook(srcdir=None, quiet=0):
     # build commandline with path arg
     path = allow_repo_root(Path(srcdir), main)
     path /= NB_ROOT
     if not path.is_dir():
         raise FileNotFoundError(f"Could not find directory: {path}")
     commandline = ["jupyter-book", "build", str(path)]
-    add_vb_flags(_log, commandline)
+    if quiet > 0:
+        quiet = min(quiet, 2)
+        commandline.append(f"-{'q' * quiet}")
+    else:
+        add_vb_flags(_log, commandline)
     # run build
     check_call(commandline)
 
@@ -254,7 +258,8 @@ class Commands:
             cls.heading("Pre-process notebooks")
             cls._run("pre-process notebooks", preprocess, srcdir=args.dir)
         cls.heading("Build Jupyterbook")
-        return cls._run("build jupyterbook", jupyterbook, srcdir=args.dir)
+        return cls._run("build jupyterbook", jupyterbook, srcdir=args.dir,
+                        quiet=args.quiet)
 
     @classmethod
     def view(cls, args):
@@ -332,6 +337,13 @@ def main():
         action="store_true",
         help="skip pre-processing",
         default=False,
+    )
+    subp["build"].add_argument(
+        "--quiet",
+        "-q",
+        action="count",
+        help=" -q means no sphinx status, -qq also turns off warnings",
+        default=0,
     )
     subp["gui"].add_argument("--console", action="store_true", dest="console")
     args = p.parse_args()

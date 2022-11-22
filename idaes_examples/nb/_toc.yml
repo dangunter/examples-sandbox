@@ -48,6 +48,9 @@ parts:
   - file: power_generation/ngfc/index
     sections:
     - file: power_generation/ngfc/ngfc_flowsheet_doc
+  - file: power_generation/rsofc/index
+    sections:
+    - file: power_generation/rsofc/rsofc_soec_doc
   - file: power_generation/subcritical/index
     sections:
     - file: power_generation/subcritical/subcritical_boiler_doc
@@ -64,10 +67,10 @@ parts:
   - file: surrogates/pysmo/index
     sections:
     - file: surrogates/pysmo/pysmo_basics_doc
-  - file: surrogates/ripe/index
-    sections:
-    - file: surrogates/ripe/clc_nb_doc
-    - file: surrogates/ripe/ripe_isothermal_cstr_doc
+#  - file: surrogates/ripe/index
+#    sections:
+#    - file: surrogates/ripe/clc_nb_doc
+#    - file: surrogates/ripe/ripe_isothermal_cstr_doc
   - file: unit_models/operations/index
     sections:
     - file: unit_models/operations/compressor_doc
