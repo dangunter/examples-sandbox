@@ -14,18 +14,21 @@ They could be run from the root of this repository like this:
 
 ```
 # Copy notebook files
-python scripts/copy_files.py \
-  ~/src/idaes/examples-pse/src nb \
+python copy_files.py \
+  ~/src/idaes/examples-pse/src \
+  ../idaes_examples/nb \
   --map map.yml
 
 # Generate Jupyterbook table of contents
-python generate_toc.py nb \
-  --map scripts/map.yml \
-  --target new_toc.yml
+python generate_toc.py \
+  ../idaes_examples/nb \
+  --map map.yml \
+  --output new_toc.yml
 
 # Add tags to notebook cells
-python edit_tags.py nb \
-  --map scripts/map.yml
+python edit_tags.py \
+  ../idaes_examples/nb \
+  --map map.yml
 ```
 
 `map.yml` is a mapping of directories in examples-pse to directories in the new structure.

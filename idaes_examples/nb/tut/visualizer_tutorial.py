@@ -1,15 +1,15 @@
-#################################################################################
-# The Institute for the Design of Advanced Energy Systems Integrated Platform
-# Framework (IDAES IP) was produced under the DOE Institute for the
-# Design of Advanced Energy Systems (IDAES), and is copyright (c) 2018-2022
-# by the software owners: The Regents of the University of California, through
+##############################################################################
+# Institute for the Design of Advanced Energy Systems Process Systems
+# Engineering Framework (IDAES PSE Framework) Copyright (c) 2018-2020, by the
+# software owners: The Regents of the University of California, through
 # Lawrence Berkeley National Laboratory,  National Technology & Engineering
-# Solutions of Sandia, LLC, Carnegie Mellon University, West Virginia University
-# Research Corporation, et al.  All rights reserved.
+# Solutions of Sandia, LLC, Carnegie Mellon University, West Virginia
+# University Research Corporation, et al. All rights reserved.
 #
-# Please see the files COPYRIGHT.md and LICENSE.md for full copyright and
-# license information.
-#################################################################################
+# Please see the files COPYRIGHT.txt and LICENSE.txt for full copyright and
+# license information, respectively. Both files are also available online
+# at the URL "https://github.com/IDAES/idaes-pse".
+##############################################################################
 """
 IDAES Visualizer Tutorial script
 
@@ -43,8 +43,8 @@ from idaes.models.unit_models import (PressureChanger,
                                       StoichiometricReactor,
                                       Flash)
 # Import thermodynamic and reaction property packages
-from idaes_examples.nb.common.hda import hda_ideal_VLE as thermo_props
-from idaes_examples.nb.common.hda import hda_reaction as reaction_props
+from idaes_examples.common.hda import hda_ideal_VLE as thermo_props
+from idaes_examples.common.hda import hda_reaction as reaction_props
 
 from idaes.models.unit_models.pressure_changer import ThermodynamicAssumption
 from idaes.core.util.model_statistics import degrees_of_freedom
