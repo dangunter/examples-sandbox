@@ -29,6 +29,21 @@ python generate_toc.py \
 python edit_tags.py \
   ../idaes_examples/nb \
   --map map.yml
+  
+# Add notebook types (test, doc, etc.)
+# to skip during preprocessing for the given notebook
+python notebook_skip.py \
+  ..\idaes_examples\nb\dae\petsc_chem_src.ipynb \
+  test
+# To iterate, use your shell's for or foreach
+# e.g., in bash:
+for nb in ../idaes_examples/nb/dae/*_src.ipynb; do
+  python notebook_skip.py $nb test
+done
+# or in Powershell
+foreach ($nb in Get-ChildItem ../idaes-examples/nb/dae -Filter "*_src.ipynb") {
+  python notebook_skip.py $nb test
+}
 ```
 
 `map.yml` is a mapping of directories in examples-pse to directories in the new structure.
