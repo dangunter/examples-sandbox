@@ -5,7 +5,7 @@ Common variables and methods for tests and scripts.
 from enum import Enum
 import logging
 from pathlib import Path
-from typing import Dict, Callable
+from typing import Dict
 
 # third-party
 import yaml
@@ -17,6 +17,7 @@ src_suffix_len = 4
 NB_ROOT = "nb"  # root folder name
 NB_CELLS = "cells"  # key for list of cells in a Jupyter Notebook
 NB_META = "metadata"  # notebook-level metadata key
+NB_IDAES, NB_SKIP = "idaes", "skip" # key and sub-key for notebook skipping
 
 
 class Tags(Enum):

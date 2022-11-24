@@ -21,6 +21,8 @@ from idaes_examples.util import (
     NB_ROOT,
     NB_CELLS,
     NB_META,
+    NB_IDAES,
+    NB_SKIP,
     read_toc,
     find_notebooks,
     src_suffix,
@@ -137,8 +139,8 @@ def _preprocess(nb_path: Path, **kwargs):
         nb_names.extend([Ext.EX.value, Ext.SOL.value])
 
     # allow notebook metadata to skip certain outputs (e.g. 'test')
-    if "idaes" in nb[NB_META]:
-        for skip_ext in nb[NB_META]["idaes"].get("skip", []):
+    if NB_IDAES in nb[NB_META]:
+        for skip_ext in nb[NB_META][NB_IDAES].get(NB_SKIP, []):
             nb_names.remove(skip_ext)
             _log.info(f"Skipping '{skip_ext}' for notebook '{nb_path}'")
 
@@ -193,10 +195,43 @@ def _clean(nb_path: Path, **kwargs):
             _log.debug(f"Remove generated file '{gen_path}'")
             gen_path.unlink()
 
+# ---------------
+# List skipped
+# ---------------
+
+
+def skipped(srcdir=None):
+    src_path = allow_repo_root(Path(srcdir), main) / NB_ROOT
+    toc = read_toc(src_path)
+    smap = {}
+    find_notebooks(src_path, toc, _skipped, smap=smap)
+
+    # print results in 'smap'
+    # - get column-width for tags
+    max_len = max((sum((len(tag) for tag in v)) + (2 * (len(v) - 1))
+                   for v in smap.values()))
+    # - print each result
+    print()
+    for k in sorted(list(smap.keys())):
+        tag_str = ", ".join(smap[k])
+        tag_str += " " * (max_len - len(tag_str))
+        file_str = str(k)
+        print(f"{tag_str} | {file_str}")
+
+
+def _skipped(nb_path: Path, smap=None, **kwargs):
+    """Print which notebooks have something skipped"""
+    with open(nb_path, mode="r", encoding="utf-8") as fp:
+        nb = json.load(fp)
+    if NB_IDAES in nb[NB_META]:
+        skipped = nb[NB_META].get(NB_IDAES, {}).get(NB_SKIP, [])
+        if skipped:
+            smap[nb_path] = sorted(skipped)
 
 # -------------
 # Black
 # -------------
+
 
 def black(srcdir=None):
     src_path = allow_repo_root(Path(srcdir), main) / NB_ROOT
@@ -251,6 +286,12 @@ class Commands:
     def pre(cls, args):
         cls.heading("Pre-process notebooks")
         return cls._run("pre-process notebooks", preprocess, srcdir=args.dir)
+
+    @classmethod
+    def skipped(cls, args):
+        cls.heading("Find notebooks which skip pre-processing steps")
+        cls.subheading("Notebooks skipping 'test' will not be tested")
+        return cls._run("find skipped", skipped, srcdir=args.dir)
 
     @classmethod
     def build(cls, args):
@@ -311,6 +352,10 @@ class Commands:
     def heading(message):
         print(f"-> {message}")
 
+    @staticmethod
+    def subheading(message):
+        print(f"   {message}")
+
 
 def main():
     p = argparse.ArgumentParser()
@@ -326,6 +371,7 @@ def main():
         ("clean", "Remove generated files"),
         ("black", "Format code in notebooks with Black"),
         ("gui", "Graphical notebook browser"),
+        ("skipped", "List notebooks tagged to skip some pre-processing")
     ):
         subp[name] = commands.add_parser(name, help=desc)
         subp[name].add_argument(
